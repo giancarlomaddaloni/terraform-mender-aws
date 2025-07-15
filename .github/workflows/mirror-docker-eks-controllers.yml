@@ -46,7 +46,7 @@ jobs:
 
       - name: Mirror images from defined groups
         run: |
-          set -e
+          set -euo pipefail
 
           for GROUP in $IMAGE_GROUPS; do
             TAG_VAR="${GROUP}_TAG"
@@ -55,13 +55,15 @@ jobs:
             TAG="${!TAG_VAR}"
             RAW_MAP="${!MAP_VAR}"
 
-            # Expand ${ACCOUNT} inside the JSON using envsubst
             MAP=$(echo "$RAW_MAP" | envsubst)
 
             echo "Processing group: $GROUP"
             echo "Using tag: $TAG"
 
+            # Reset image map
+            unset IMAGES || true
             declare -A IMAGES
+
             while IFS="=" read -r src dst; do
               src_clean="$(echo "$src" | xargs)"
               dst_clean="$(echo "$dst" | xargs)"
@@ -70,6 +72,13 @@ jobs:
 
             for SRC_IMAGE in "${!IMAGES[@]}"; do
               DST_IMAGE="${IMAGES[$SRC_IMAGE]}"
+              
+              echo "Checking availability of $SRC_IMAGE:$TAG"
+              if ! docker manifest inspect "$SRC_IMAGE:$TAG" > /dev/null 2>&1; then
+                echo "Image not found: $SRC_IMAGE:$TAG — skipping"
+                continue
+              fi
+
               echo "Pulling $SRC_IMAGE:$TAG"
               docker pull "$SRC_IMAGE:$TAG"
 
