@@ -23,11 +23,11 @@ jobs:
           "quay.io/jetstack/cert-manager-controller": "${ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/mender-cert-manager/controller",
           "quay.io/jetstack/cert-manager-webhook": "${ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/mender-cert-manager/webhook"
         }
-        
+
       LOAD_BALANCER_TAG: "v2.13.3"
       LOAD_BALANCER_ECR_MAP: |
         {
-          "public.ecr.aws/eks/aws-load-balancer-controller": "${ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/mender-lb-eks"
+          "public.ecr.aws/eks/aws-load-balancer-controller": "${ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/mender-lb-eks/aws-load-balancer-controller"
         }
 
     steps:
@@ -44,7 +44,7 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Dynamically mirror images from each group
+      - name: Mirror images from defined groups
         run: |
           set -e
 
@@ -53,14 +53,16 @@ jobs:
             MAP_VAR="${GROUP}_ECR_MAP"
 
             TAG="${!TAG_VAR}"
-            MAP="${!MAP_VAR}"
+            RAW_MAP="${!MAP_VAR}"
+
+            # Expand ${ACCOUNT} inside the JSON using envsubst
+            MAP=$(echo "$RAW_MAP" | envsubst)
 
             echo "Processing group: $GROUP"
             echo "Using tag: $TAG"
 
             declare -A IMAGES
             while IFS="=" read -r src dst; do
-              # trim whitespace
               src_clean="$(echo "$src" | xargs)"
               dst_clean="$(echo "$dst" | xargs)"
               IMAGES["$src_clean"]="$dst_clean"
@@ -71,7 +73,7 @@ jobs:
               echo "Pulling $SRC_IMAGE:$TAG"
               docker pull "$SRC_IMAGE:$TAG"
 
-              echo "Tagging as $DST_IMAGE:$TAG"
+              echo "Tagging $DST_IMAGE:$TAG"
               docker tag "$SRC_IMAGE:$TAG" "$DST_IMAGE:$TAG"
 
               echo "Pushing $DST_IMAGE:$TAG"
