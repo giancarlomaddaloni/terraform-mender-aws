@@ -10,23 +10,24 @@ jobs:
 
     env:
       AWS_REGION: ${{ secrets.AWS_REGION }}
+      ACCOUNT: ${{ secrets.ACCOUNT }}
 
       IMAGE_GROUPS: "CERT_MANAGER LOAD_BALANCER"
 
       CERT_MANAGER_TAG: "v1.18.2"
       CERT_MANAGER_ECR_MAP: |
         {
-          "quay.io/jetstack/cert-manager-startupapicheck": "194722422560.dkr.ecr.us-east-1.amazonaws.com/mender-cert-manager/startupapicheck",
-          "quay.io/jetstack/cert-manager-acmesolver": "194722422560.dkr.ecr.us-east-1.amazonaws.com/mender-cert-manager/acmesolver",
-          "quay.io/jetstack/cert-manager-cainjector": "194722422560.dkr.ecr.us-east-1.amazonaws.com/mender-cert-manager/cainjector",
-          "quay.io/jetstack/cert-manager-controller": "194722422560.dkr.ecr.us-east-1.amazonaws.com/mender-cert-manager/controller",
-          "quay.io/jetstack/cert-manager-webhook": "194722422560.dkr.ecr.us-east-1.amazonaws.com/mender-cert-manager/webhook"
+          "quay.io/jetstack/cert-manager-startupapicheck": "${ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/mender-cert-manager/startupapicheck",
+          "quay.io/jetstack/cert-manager-acmesolver": "${ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/mender-cert-manager/acmesolver",
+          "quay.io/jetstack/cert-manager-cainjector": "${ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/mender-cert-manager/cainjector",
+          "quay.io/jetstack/cert-manager-controller": "${ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/mender-cert-manager/controller",
+          "quay.io/jetstack/cert-manager-webhook": "${ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/mender-cert-manager/webhook"
         }
         
       LOAD_BALANCER_TAG: "v2.13.3"
       LOAD_BALANCER_ECR_MAP: |
         {
-          "public.ecr.aws/eks/aws-load-balancer-controller": "194722422560.dkr.ecr.us-east-1.amazonaws.com/mender-lb-eks/aws-load-balancer-controller"
+          "public.ecr.aws/eks/aws-load-balancer-controller": "${ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/mender-lb-eks/aws-load-balancer-controller"
         }
 
     steps:
