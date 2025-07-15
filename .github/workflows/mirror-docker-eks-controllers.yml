@@ -1,11 +1,11 @@
-name: Mirror Images to ECR
+name: Mirror EKS Controller Images to ECR
 
 on:
   workflow_dispatch:
 
 jobs:
   mirror:
-    name: Mirror Images to ECR
+    name: Mirror EKS Controller Images to ECR
     runs-on: ubuntu-latest
 
     env:
@@ -27,7 +27,7 @@ jobs:
       LOAD_BALANCER_TAG: "v2.13.3"
       LOAD_BALANCER_ECR_MAP: |
         {
-          "public.ecr.aws/eks/aws-load-balancer-controller": "${ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/mender-lb-eks/aws-load-balancer-controller"
+          "public.ecr.aws/eks/aws-load-balancer-controller": "${ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/mender-lb-eks"
         }
 
     steps:

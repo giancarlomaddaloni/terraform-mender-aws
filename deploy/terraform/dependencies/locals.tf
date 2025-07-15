@@ -11,7 +11,11 @@ locals {
   repositories = [
     "mender-web",
     "mender-lb-eks",
-    "mender-cert-manager",
+    "mender-cert-manager/startupapicheck",
+    "mender-cert-manager/acmesolver",
+    "mender-cert-manager/cainjector",
+    "mender-cert-manager/controller",
+    "mender-cert-manager/webhook",
     "mender-mongodb",
     "mender-redis",
     "mender-nats",
