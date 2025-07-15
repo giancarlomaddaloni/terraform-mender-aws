@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources: 
+  - mender-backend-statefulset.yaml
+
+images:
+- name: "194722422560.dkr.ecr.us-east-1.amazonaws.com/mender-dxp:latest"
+  newName: "artifactrep-app-publicweb-virtual-docker.jfrog.io/argoproj/argocd"
+  newTag: "prod-09182024-video-preview"

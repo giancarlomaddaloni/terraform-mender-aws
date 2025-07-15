@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+ 
+resources: 
+  - mender-backend-statefulset.yaml
+  - mender-backend-sa.yaml
+  - mender-backend-svc-statefulset.yaml
+
+
+
+generatorOptions:
+ disableNameSuffixHash: true
