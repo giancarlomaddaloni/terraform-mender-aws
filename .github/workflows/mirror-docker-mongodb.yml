@@ -14,35 +14,34 @@ jobs:
 
       IMAGE_GROUPS: "BITNAMI_KUBECTL BITNAMI_MONGODB BITNAMI_MONGODB_EXPORTER BITNAMI_NGINX BITNAMI_OS_SHELL"
 
-
       BITNAMI_KUBECTL: "1.33.2-debian-12-r3"
       BITNAMI_KUBECTL_ECR_MAP: |
         {
-          "docker.io/bitnami/kubectl": "${ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/bitnami/kubectl",
+          "docker.io/bitnami/kubectl": "${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/bitnami/kubectl"
         }
-      
+
       BITNAMI_MONGODB: "8.0.11-debian-12-r0"
       BITNAMI_MONGODB_ECR_MAP: |
         {
-          "docker.io/bitnami/mongodb": "${ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/bitnami/mongodb",
+          "docker.io/bitnami/mongodb": "${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/bitnami/mongodb"
         }
-      
+
       BITNAMI_MONGODB_EXPORTER: "0.45.0-debian-12-r4"
       BITNAMI_MONGODB_EXPORTER_ECR_MAP: |
         {
-          "docker.io/bitnami/mongodb-exporter": "${ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/bitnami/mongodb-exporter",
+          "docker.io/bitnami/mongodb-exporter": "${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/bitnami/mongodb-exporter"
         }
 
       BITNAMI_NGINX: "1.29.0-debian-12-r2"
       BITNAMI_NGINX_ECR_MAP: |
         {
-          "docker.io/bitnami/nginx": "${ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/bitnami/nginx",
+          "docker.io/bitnami/nginx": "${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/bitnami/nginx"
         }
-      
+
       BITNAMI_OS_SHELL: "12-debian-12-r47"
       BITNAMI_OS_SHELL_ECR_MAP: |
         {
-          "docker.io/bitnami/os-shell": "${ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/bitnami/os-shell"
+          "docker.io/bitnami/os-shell": "${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/bitnami/os-shell"
         }
 
     steps:
@@ -59,7 +58,7 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Mirroring images from IMAGE_GROUPS
+      - name: Mirror Images from DockerHub to ECR
         run: |
           set -euo pipefail
 
@@ -75,7 +74,11 @@ jobs:
             echo "Processing group: $GROUP"
             echo "Using tag: $TAG"
 
-            # Reset image map
+            if ! echo "$MAP" | jq empty; then
+              echo "Invalid JSON in map for $GROUP"
+              continue
+            fi
+
             unset IMAGES || true
             declare -A IMAGES
 
