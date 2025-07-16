@@ -64,7 +64,7 @@ jobs:
           set -euo pipefail
 
           for GROUP in $IMAGE_GROUPS; do
-            TAG_VAR="${GROUP}_TAG"
+            TAG_VAR="${GROUP}"
             MAP_VAR="${GROUP}_ECR_MAP"
 
             TAG="${!TAG_VAR}"
