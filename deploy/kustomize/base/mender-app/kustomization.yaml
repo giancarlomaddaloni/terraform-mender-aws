@@ -3,6 +3,7 @@ kind: Kustomization
  
 resources: 
   - mongodb-secret.yaml
+  - efs-sc.yaml
   - namespace.yaml
 
 

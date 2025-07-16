@@ -1,0 +1,35 @@
+--- ## Mender MongoDB EFS ## ----
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: efs-mongodb-pv 
+spec:
+  storageClassName: efs-mender-sc
+  capacity:
+    storage: 25Gi
+  accessModes:
+    - ReadWriteMany
+  csi:
+    driver: efs.csi.aws.com
+    volumeHandle: fs-0314c6b7168dd797e::fsap-08078f965ae97d39c
+    volumeAttributes:
+      encryptInTransit: "false" 
+
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: efs-mongodb-pvc
+  namespace: mender
+  annotations: 
+    volume.beta.kubernetes.io/storage-class: "efs-mender-sc"
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: efs-mender-sc
+  resources:
+    requests:
+      storage: 25Gi
+  volumeName: efs-mongodb-pv
