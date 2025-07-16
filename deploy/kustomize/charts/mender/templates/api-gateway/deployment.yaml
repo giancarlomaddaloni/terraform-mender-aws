@@ -1,0 +1,211 @@
+{{- if .Values.api_gateway.enabled }}
+{{- $merged := merge (deepCopy .Values.api_gateway) (deepCopy (default (dict) .Values.default)) -}}
+{{- $context := dict "dot" . "override" .Values.api_gateway "component" "api-gateway" "imageComponent" "traefik" }}
+{{- if or .Values.api_gateway.podSecurityContext.enabled .Values.api_gateway.containerSecurityContext.enabled }}
+  {{- if and .Values.api_gateway.httpPort (lt (int .Values.api_gateway.httpPort) 1024)  }}
+    {{- fail ".Values.api_gateway.httpPort can't be less than 1024 when Security Context is enabled" }}
+  {{- end }}
+  {{- if and .Values.api_gateway.httpsPort (lt (int .Values.api_gateway.httpsPort) 1024)  }}
+    {{- fail ".Values.api_gateway.httpsPort can't be less than 1024 when Security Context is enabled" }}
+  {{- end }}
+{{- end }}
+{{- if and .Values.api_gateway.env.SSL (not .Values.api_gateway.httpsPort) }}
+  {{- fail ".Values.api_gateway.httpsPort has to be set when .Values.api_gateway.env.SSL is enabled." }}
+{{- end }}
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "mender.fullname" . }}-api-gateway
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mender.labels" . | nindent 4 }}
+    app.kubernetes.io/name: {{ include "mender.fullname" . }}-api-gateway
+    app.kubernetes.io/component: api-gateway
+  {{- with .Values.api_gateway.deploymentAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not (or .Values.api_gateway.hpa .Values.default.hpa) }}
+  replicas: {{ .Values.api_gateway.replicas }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "mender.fullname" . }}-api-gateway
+
+  # if deployment is not completed within 10 min, consider it failed,
+  # as result deployment Reason=ProgressDeadlineExceeded
+  # needs to be big enough to rollout to complete
+  progressDeadlineSeconds: 600
+
+  # Rollout upgrade
+  {{- $updateStrategy := coalesce .Values.api_gateway.updateStrategy .Values.default.updateStrategy }}
+  {{- if $updateStrategy }}
+  strategy: {{- toYaml $updateStrategy | nindent 4 }}
+  {{- end }}
+
+  {{- $minReadySeconds := coalesce .Values.api_gateway.minReadySeconds .Values.default.minReadySeconds }}
+  {{- if $minReadySeconds }}
+  minReadySeconds: {{ $minReadySeconds }}
+  {{- end }}
+
+  template:
+    metadata:
+      {{- with .Values.api_gateway.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        app.kubernetes.io/name: {{ include "mender.fullname" . }}-api-gateway
+        {{- include "mender.labels" . | nindent 8 }}
+        app.kubernetes.io/component: api-gateway
+    spec:
+      {{- with $merged.affinity }}
+      affinity: {{ tpl (toYaml .) $ | nindent 8 }}
+      {{- end }}
+      {{- with $merged.tolerations }}
+      tolerations: {{ tpl (toYaml .) $ | nindent 8 }}
+      {{- end }}
+{{- if .Values.api_gateway.podSecurityContext.enabled }}
+      securityContext: {{- omit .Values.api_gateway.podSecurityContext "enabled" | toYaml | nindent 8 }}
+{{- end }}
+      serviceAccountName: {{ include "mender.serviceAccountName" . }}
+
+      containers:
+      - name: api-gateway
+        image: {{ printf "%s/%s:%s"
+                (include "mender.image.registry" $context)
+                (include "mender.image.repository" $context)
+                (include "mender.image.tag" $context) }}
+        imagePullPolicy: {{ include "mender.imagePullPolicy" $context }}
+{{- if .Values.api_gateway.containerSecurityContext.enabled }}
+        securityContext: {{- omit .Values.api_gateway.containerSecurityContext "enabled" | toYaml | nindent 10 }}
+{{- end }}
+        args:
+{{- if .Values.api_gateway.accesslogs }}
+            - --accesslog=true
+            - --accesslog.format=json
+{{- end }}
+{{- if .Values.api_gateway.dashboard }}
+            - --api=true
+            - --api.dashboard=true
+            - --api.insecure=true
+{{- end }}
+{{- if .Values.api_gateway.httpPort }}
+            - --entrypoints.http.address=:{{- .Values.api_gateway.httpPort }}
+            - --entryPoints.http.transport.respondingTimeouts.idleTimeout=7200
+            - --entryPoints.http.transport.respondingTimeouts.readTimeout=7200
+            - --entryPoints.http.transport.respondingTimeouts.writeTimeout=7200
+{{- end }}
+{{- if .Values.api_gateway.httpsPort }}
+            - --entrypoints.https.address=:{{- .Values.api_gateway.httpsPort }}
+            - --entryPoints.https.transport.respondingTimeouts.idleTimeout=7200
+            - --entryPoints.https.transport.respondingTimeouts.readTimeout=7200
+            - --entryPoints.https.transport.respondingTimeouts.writeTimeout=7200
+{{- end }}
+            - --metrics=true
+            - --metrics.prometheus=true
+            - --metrics.prometheus.buckets=0.100000,0.300000,1.200000,5.000000
+            - --metrics.prometheus.addEntryPointsLabels=true
+            - --metrics.prometheus.addServicesLabels=true
+            - --providers.file.filename=/etc/traefik/config/traefik.yaml
+            - --ping=true
+            - --ping.manualrouting=true
+            {{- if .Values.api_gateway.podMonitor.enabled }}
+            - --entryPoints.metrics.address=:9090
+            {{- end }}
+{{- if .Values.api_gateway.extraArgs }}
+{{- .Values.api_gateway.extraArgs | toYaml | nindent 12 }}
+{{- end }}
+        resources:
+{{ toYaml .Values.api_gateway.resources | indent 10 }}
+
+        ports:
+{{- if and .Values.api_gateway.env.SSL .Values.api_gateway.httpsPort }}
+        - containerPort: {{ .Values.api_gateway.httpsPort }}
+{{- end }}
+        - containerPort: {{ .Values.api_gateway.httpPort }}
+{{- if .Values.api_gateway.podMonitor.enabled }}
+        - containerPort: 9090
+          name: prom-metrics
+          protocol: TCP
+{{- end }}
+
+        # Readiness/liveness/startup probes
+        livenessProbe:
+          tcpSocket:
+          httpGet:
+            path: /healthz
+            port: {{ .Values.api_gateway.httpPort }}
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          {{- with include "mender.probesOverrides" (dict "default" .Values.default.probesOverrides "override" .Values.api_gateway.probesOverrides ) }}
+          {{- nindent 10 . }}
+          {{- end }}
+        readinessProbe:
+          tcpSocket:
+          httpGet:
+            path: /healthz
+            port: {{ .Values.api_gateway.httpPort }}
+          periodSeconds: 15
+          initialDelaySeconds: 5
+          {{- with include "mender.probesOverrides" (dict "default" .Values.default.probesOverrides "override" .Values.api_gateway.probesOverrides ) }}
+          {{- nindent 10 . }}
+          {{- end }}
+        startupProbe:
+          failureThreshold: 30
+          httpGet:
+            path: /healthz
+            port: {{ .Values.api_gateway.httpPort }}
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+        volumeMounts:
+        - name: api-gateway-traefik
+          mountPath: /etc/traefik/config/traefik.yaml
+          subPath: traefik.yaml
+          readOnly: true
+{{- if .Values.api_gateway.env.SSL }}
+        - name: certs
+          mountPath: /etc/traefik/certs
+          readOnly: true
+{{- end }}
+
+{{- with .Values.api_gateway.nodeSelector }}
+      nodeSelector: {{ toYaml . | nindent 8 }}
+{{- end }}
+
+      volumes:
+      - name: api-gateway-traefik
+        configMap:
+          name: api-gateway-traefik
+{{- if .Values.api_gateway.env.SSL }}
+      - name: certs
+        secret:
+          {{- with .Values.api_gateway.certs }}
+          {{- if .existingSecret }}
+          secretName: {{ .existingSecret }}
+          {{- else }}
+          secretName: api-gateway
+          {{- end }}
+          {{- end }}
+{{- end }}
+
+{{- if and .Values.global.image .Values.global.image.username }}
+      imagePullSecrets:
+      - name: docker-registry
+{{- else }}
+{{- $ips := coalesce .Values.api_gateway.imagePullSecrets .Values.default.imagePullSecrets  }}
+{{- if $ips }}
+      imagePullSecrets:
+{{- toYaml $ips | nindent 6 }}
+{{- end }}
+{{- end }}
+
+{{- $pcn := coalesce .Values.api_gateway.priorityClassName .Values.global.priorityClassName -}}
+{{- if $pcn }}
+      priorityClassName: {{ $pcn }}
+{{- end -}}
+
+{{- end }}

@@ -1,0 +1,47 @@
+{{- if .Values.api_gateway.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.api_gateway.service.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mender.labels" . | nindent 4 }}
+    app.kubernetes.io/name: api-gateway-svc
+    app.kubernetes.io/component: api-gateway
+{{- with .Values.api_gateway.service.annotations }}
+  annotations: {{ tpl (toYaml .) $ | nindent 4 }}
+{{- end }}
+spec:
+  type: {{ .Values.api_gateway.service.type }}
+  {{- if and (eq .Values.api_gateway.service.type "ClusterIP") .Values.api_gateway.service.clusterIP }}
+  clusterIP: {{ .Values.api_gateway.service.clusterIP }}
+  {{- end }}
+  {{- if and (eq .Values.api_gateway.service.type "LoadBalancer") .Values.api_gateway.service.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.api_gateway.service.loadBalancerIP }}
+  {{- end }}
+  {{- if .Values.api_gateway.service.externalIPs }}
+  externalIPs: {{ toYaml .Values.api_gateway.service.externalIPs | nindent 4 }}
+  {{- end }}
+  {{- if .Values.api_gateway.service.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges: {{- toYaml .Values.api_gateway.service.loadBalancerSourceRanges | nindent 4 }}
+  {{- end }}
+  ports:
+{{- if .Values.api_gateway.env.SSL }}
+  - port: {{ .Values.api_gateway.service.httpsPort }}
+    protocol: TCP
+    targetPort: {{ .Values.api_gateway.httpsPort }}
+    {{- if .Values.api_gateway.service.httpsNodePort }}
+    nodePort: {{ .Values.api_gateway.service.httpsNodePort }}
+    {{- end }}
+    name: https
+{{- end }}
+  - port: {{ .Values.api_gateway.service.httpPort }}
+    protocol: TCP
+    targetPort: {{ .Values.api_gateway.httpPort }}
+    {{- if .Values.api_gateway.service.httpNodePort }}
+    nodePort: {{ .Values.api_gateway.service.httpNodePort }}
+    {{- end }}
+    name: http
+  selector:
+    app.kubernetes.io/name: {{ include "mender.fullname" . }}-api-gateway
+{{- end }}

@@ -1,0 +1,172 @@
+{{- define "mender.deploymentsPodTemplate" -}}
+metadata:
+  {{- with .dot.Values.deployments.podAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  labels:
+    {{- include "mender.labels" . | nindent 4 }}
+spec:
+  {{- with (coalesce .dot.Values.deployments.affinity .dot.Values.default.affinity) }}
+  affinity: {{ toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with (coalesce .dot.Values.deployments.tolerations .dot.Values.default.tolerations) }}
+  tolerations: {{ toYaml . | nindent 4 }}
+  {{- end }}
+  {{- if and (eq .dot.Values.global.storage "aws") (.dot.Values.global.s3.AWS_SERVICE_ACCOUNT_NAME) }}
+  serviceAccountName: {{ .dot.Values.global.s3.AWS_SERVICE_ACCOUNT_NAME }}
+  {{- else }}
+  serviceAccountName: {{ include "mender.serviceAccountName" . }}
+  {{- end }}
+  {{- if .dot.Values.deployments.podSecurityContext.enabled }}
+  securityContext: {{- omit .dot.Values.deployments.podSecurityContext "enabled" | toYaml | nindent 4 }}
+  {{- end }}
+
+  {{- with .restartPolicy }}
+  restartPolicy: {{ quote . }}
+  {{- end }}
+  containers:
+  - name: {{ ternary "deployments" "deployments-migration" (empty .migration) | quote }}
+    image: {{ include "mender.image" . }}
+    imagePullPolicy: {{ include "mender.imagePullPolicy" . }}
+    {{- if .dot.Values.deployments.containerSecurityContext.enabled }}
+    securityContext: {{- omit .dot.Values.deployments.containerSecurityContext "enabled" | toYaml | nindent 6 }}
+    {{- end }}
+
+    {{- with include "mender.resources" (list .dot.Values.default.resources .dot.Values.deployments.resources .extraResources )}}
+    resources: {{- nindent 6 . }}
+    {{- end }}
+
+    {{- if (not .migration) }}
+    {{- if .dot.Values.deployments.automigrate }}
+    args: ["server", "--automigrate"]
+    {{- else }}
+    args: ["server"]
+    {{- end }}
+    {{- else }}
+    args: ["migrate"]
+    {{- end }}
+
+
+    {{- if (not .migration) }}
+    # Readiness/liveness probes
+    readinessProbe:
+      httpGet:
+        path: /api/internal/v1/deployments/health
+        port: 8080
+      periodSeconds: 15
+      {{- with include "mender.probesOverrides" (dict "default" .dot.Values.default.probesOverrides "override" .dot.Values.deployments.probesOverrides ) }}
+      {{- nindent 6 . }}
+      {{- end }}
+    livenessProbe:
+      httpGet:
+        path: /api/internal/v1/deployments/alive
+        port: 8080
+      periodSeconds: 5
+      {{- with include "mender.probesOverrides" (dict "default" .dot.Values.default.probesOverrides "override" .dot.Values.deployments.probesOverrides ) }}
+      {{- nindent 6 . }}
+      {{- end }}
+    startupProbe:
+      httpGet:
+        path: /api/internal/v1/deployments/alive
+        port: 8080
+      failureThreshold: 36
+      periodSeconds: 5
+    {{- end }}
+
+    env:
+    - name: DEPLOYMENTS_STORAGE_DEFAULT
+      value: {{ .dot.Values.global.storage | quote }}
+    - name: DEPLOYMENTS_INVENTORY_ADDR
+      value: {{ printf "http://%s:%v" .dot.Values.inventory.service.name .dot.Values.inventory.service.port }}
+    - name: DEPLOYMENTS_MIDDLEWARE
+      value: {{ .dot.Values.deployments.env.DEPLOYMENTS_MIDDLEWARE | quote }}
+    - name: DEPLOYMENTS_AWS_TAG_ARTIFACT
+      value: {{ .dot.Values.deployments.env.DEPLOYMENTS_AWS_TAG_ARTIFACT | quote }}
+    {{- if and .dot.Values.deployments.env.DEPLOYMENTS_PRESIGN_SECRET ( not .dot.Values.deployments.presignSecretExistingSecret ) }}
+    - name: DEPLOYMENTS_PRESIGN_SECRET
+      value: {{ .dot.Values.deployments.env.DEPLOYMENTS_PRESIGN_SECRET | quote }}
+    {{- end }}
+    {{- if and .dot.Values.auditlogs.enabled .dot.Values.global.enterprise }}
+    - name: DEPLOYMENTS_ENABLE_AUDIT
+      value: "true"
+    {{- end }}
+    {{- if .dot.Values.deployments.directUpload.enabled }}
+    - name: DEPLOYMENTS_STORAGE_ENABLE_DIRECT_UPLOAD
+      value: "true"
+    {{- if .dot.Values.deployments.directUpload.skipVerify }}
+    - name: DEPLOYMENTS_STORAGE_DIRECT_UPLOAD_SKIP_VERIFY
+      value: "true"
+    {{- end }}
+    {{- end }}
+    {{- if .dot.Values.api_gateway.storage_proxy.enabled }}
+    - name: DEPLOYMENTS_STORAGE_PROXY_URI
+      value: {{ printf "%q" .dot.Values.global.url }}
+    {{- end }}
+    {{- if .dot.Values.global.enterprise }}
+    {{- if not .dot.Values.global.redis.existingSecret }}
+    - name: DEPLOYMENTS_REDIS_CONNECTION_STRING
+      value: {{ include "redis_connection_string" . }}
+    {{- end }}
+    - name: DEPLOYMENTS_REDIS_KEY_PREFIX
+      value: {{ .dot.Values.device_auth.env.DEPLOYMENTS_REDIS_KEY_PREFIX | default "deployments:v1" | quote }}
+    {{- end }}
+    {{- if .dot.Values.deployments.storageMaxImageSize }}
+    - name: DEPLOYMENTS_STORAGE_MAX_IMAGE_SIZE
+      value: {{ .dot.Values.deployments.storageMaxImageSize | default "10737418240" | quote }}
+    {{- end }}
+    {{- if .dot.Values.deployments.storageMaxGenerateDataSize }}
+    - name: DEPLOYMENTS_STORAGE_MAX_GENERATE_DATA_SIZE
+      value: {{ .dot.Values.deployments.storageMaxGenerateDataSize | default "536870912" | quote }}
+    {{- end }}
+
+    {{- include "mender.customEnvs" (merge (deepCopy .dot.Values.deployments) (deepCopy (default (dict) .dot.Values.default))) | nindent 4 }}
+
+    # Supported configuration settings: https://github.com/mendersoftware/deployments/blob/master/config.yaml
+    # Set in order, last value for the key will be used in case duplications.
+    envFrom:
+    - prefix: DEPLOYMENTS_
+      secretRef:
+      {{- if .dot.Values.deployments.mongodbExistingSecret }}
+        name: {{ .dot.Values.deployments.mongodbExistingSecret | default (ternary "mongodb-common" "mongodb-common-prerelease" (empty .migration)) }}
+      {{- else }}
+        name: {{ .dot.Values.global.mongodb.existingSecret | default (ternary "mongodb-common" "mongodb-common-prerelease" (empty .migration)) }}
+      {{- end }}
+    {{- if (not .migration) }}
+    - prefix: DEPLOYMENTS_
+      secretRef:
+        name: {{ .dot.Values.global.s3.existingSecret | default "artifacts-storage" }}
+    {{- end }}
+    {{- if and ( not .dot.Values.deployments.env.DEPLOYMENTS_PRESIGN_SECRET ) .dot.Values.deployments.presignSecretExistingSecret }}
+    - prefix: DEPLOYMENTS_
+      secretRef:
+        name: {{ .dot.Values.deployments.presignSecretExistingSecret | quote }}
+    {{- end }}
+    {{- if and .dot.Values.global.redis.existingSecret .dot.Values.global.enterprise ( not .dot.Values.global.redis.URL ) ( not .dot.Values.redis.enabled ) }}
+    # Redis existingSecret
+    - prefix: DEPLOYMENTS_
+      secretRef:
+        name: {{ .dot.Values.global.redis.existingSecret | quote }}
+    {{- end }}
+
+
+  {{- if and .dot.Values.global.image .dot.Values.global.image.username }}
+  imagePullSecrets:
+  - name: {{ ternary "docker-registry" "docker-registry-prerelease" (empty .migration) }}
+  {{- else }}
+  {{- $ips := coalesce .dot.Values.deployments.imagePullSecrets .dot.Values.default.imagePullSecrets  }}
+  {{- if $ips }}
+  imagePullSecrets:
+  {{- toYaml $ips | nindent 4}}
+  {{- end }}
+  {{- end }}
+
+  {{- $pcn := coalesce .dot.Values.deployments.priorityClassName .dot.Values.global.priorityClassName -}}
+  {{- if $pcn }}
+  priorityClassName: {{ $pcn }}
+  {{- end }}
+
+  {{- with (coalesce .dot.Values.deployments.nodeSelector .dot.Values.default.nodeSelector) }}
+  nodeSelector: {{ toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

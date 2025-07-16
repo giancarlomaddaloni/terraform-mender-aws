@@ -59,6 +59,25 @@ module "mender_eks" {
         }
       }
     },
+    mender_user_deploy = {
+      kubernetes_groups = [] 
+      principal_arn     = "arn:aws:sts::194722422560:user/mender-deploy"
+      policy_associations = {
+        namespace = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminPolicy"
+          access_scope = {
+            namespaces = local.k8s_parameters.namespace_access
+            type       = "namespace"
+          }
+        },
+        cluster = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type       = "cluster"
+          }
+        }
+      }
+    },
     northerntech_team = {
       kubernetes_groups = []
       principal_arn     = "arn:aws:sts::194722422560:federated-user/northerntech-team"
@@ -95,18 +114,6 @@ resource "aws_eks_addon" "coredns" {
   ]
 }
 
-
-resource "aws_eks_addon" "coredns" {
-  cluster_name = module.mender_eks.cluster_name
-  addon_name   = "coredns"
-  addon_version = "v1.11.4-eksbuild.2"
-  resolve_conflicts_on_create = "OVERWRITE"  
-  
-  depends_on = [
-    module.mender_eks,
-    module.mender_node_group
-  ]
-}
 
 
 module "mender_node_group" {

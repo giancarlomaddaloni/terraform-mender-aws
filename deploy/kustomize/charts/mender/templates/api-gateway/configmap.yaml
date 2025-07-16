@@ -1,0 +1,561 @@
+{{ $scheme := ternary "https" "http" (.Values.api_gateway.env.SSL) }}
+{{ $isTls := ternary true false (.Values.api_gateway.env.SSL) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-gateway-traefik
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: api-gateway-traefik
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: api-gateway
+    app.kubernetes.io/part-of: mender
+    helm.sh/chart: "{{ .Chart.Name }}"
+data:
+  traefik.yaml : |-
+    http:
+
+      #
+      # Routers
+      #
+      routers:
+{{- if .Values.api_gateway.env.SSL }}
+        #
+        # redirection from http to https
+        #
+        redirect-to-https:
+          entrypoints: http
+          rule: "PathPrefix(`/`)"
+          middlewares:
+          - redirect-to-https
+          service: noop@internal
+          priority: 10
+{{- end }}
+        #
+        # healthz
+        #
+        healthz:
+          entrypoints: http
+          rule: "Path(`/healthz`)"
+          service: ping@internal
+          priority: 20
+
+        #
+        # auditlogs
+        #
+        auditlogs:
+          entrypoints: {{ $scheme }}
+          middlewares:
+          - ratelimit
+          - userauth
+          - sec-headers
+{{- if .Values.api_gateway.compression }}
+          - compression
+{{- end }}
+          rule: "PathRegexp(`^/api/management/v[0-9]+/auditlogs`)"
+          service: auditlogs
+          tls: {{ $isTls }}
+
+        #
+        # iot-manager
+        #
+        iot-manager:
+          entrypoints: {{ $scheme }}
+          middlewares:
+          - ratelimit
+          - userauth
+          - sec-headers
+{{- if .Values.api_gateway.compression }}
+          - compression
+{{- end }}
+          rule: "PathRegexp(`^/api/management/v[0-9]+/iot-manager`)"
+          service: iot-manager
+          tls: {{ $isTls }}
+
+        #
+        # deployments
+        #
+        deployments:
+          entrypoints: {{ $scheme }}
+          middlewares:
+          - ratelimit
+          - devauth
+          - sec-headers
+{{- if .Values.api_gateway.compression }}
+          - compression
+{{- end }}
+          rule: "PathRegexp(`^/api/devices/v[0-9]+/deployments`)"
+          service: deployments
+          tls: {{ $isTls }}
+
+        deploymentsDL:
+          entrypoints: {{ $scheme }}
+          middlewares:
+          - ratelimit
+          - sec-headers
+          rule: "PathRegexp(`^/api/devices/v[0-9]+/deployments/download`)"
+          service: deployments
+          tls: {{ $isTls }}
+
+        deploymentsMgmt:
+          entrypoints: {{ $scheme }}
+          middlewares:
+          - ratelimit
+          - userauth
+          - sec-headers
+{{- if .Values.api_gateway.compression }}
+          - compression
+{{- end }}
+          rule: "PathRegexp(`^/api/management/v[0-9]+/deployments`)"
+          service: deployments
+          tls: {{ $isTls }}
+
+        #
+        # deviceauth
+        #
+        deviceauth:
+          entrypoints: {{ $scheme }}
+          middlewares:
+          - ratelimit
+          - sec-headers
+{{- if .Values.api_gateway.compression }}
+          - compression
+{{- end }}
+          rule: "PathRegexp(`^/api/devices/v[0-9]+/authentication`)"
+          service: deviceauth
+          tls: {{ $isTls }}
+
+        deviceauthMgmt:
+          entrypoints: {{ $scheme }}
+          middlewares:
+          - ratelimit
+          - userauth
+          - sec-headers
+{{- if .Values.api_gateway.compression }}
+          - compression
+{{- end }}
+          rule: "PathRegexp(`^/api/management/v[0-9]+/devauth`)"
+          service: deviceauth
+          tls: {{ $isTls }}
+
+        #
+        # deviceconfig
+        #
+        deviceconfig:
+          entrypoints: {{ $scheme }}
+          middlewares:
+          - ratelimit
+          - devauth
+          - sec-headers
+{{- if .Values.api_gateway.compression }}
+          - compression
+{{- end }}
+          rule: "PathRegexp(`^/api/devices/v[0-9]+/deviceconfig`)"
+          service: deviceconfig
+          tls: {{ $isTls }}
+
+        deviceconfigMgmt:
+          entrypoints: {{ $scheme }}
+          middlewares:
+          - ratelimit
+          - userauth
+          - sec-headers
+{{- if .Values.api_gateway.compression }}
+          - compression
+{{- end }}
+          rule: "PathRegexp(`^/api/management/v[0-9]+/deviceconfig`)"
+          service: deviceconfig
+          tls: {{ $isTls }}
+
+        #
+        # deviceconnect
+        #
+        deviceconnect:
+          entrypoints: {{ $scheme }}
+          middlewares:
+          - ratelimit
+          - devauth
+          - sec-headers
+{{- if .Values.api_gateway.compression }}
+          - compression
+{{- end }}
+          rule: "PathRegexp(`^/api/devices/v[0-9]+/deviceconnect`)"
+          service: deviceconnect
+          tls: {{ $isTls }}
+
+        deviceconnectMgmt:
+          entrypoints: {{ $scheme }}
+          middlewares:
+          - ratelimit
+          - userauth
+          - sec-headers
+{{- if .Values.api_gateway.compression }}
+          - compression
+{{- end }}
+          rule: "PathRegexp(`^/api/management/v[0-9]+/deviceconnect`)"
+          service: deviceconnect
+          tls: {{ $isTls }}
+
+        #
+        # devicemonitor
+        #
+        devicemonitor:
+          entrypoints: {{ $scheme }}
+          middlewares:
+          - ratelimit
+          - devauth
+          - sec-headers
+{{- if .Values.api_gateway.compression }}
+          - compression
+{{- end }}
+          rule: "PathRegexp(`^/api/devices/v[0-9]+/devicemonitor`)"
+          service: devicemonitor
+          tls: {{ $isTls }}
+
+        devicemonitorMgmt:
+          entrypoints: {{ $scheme }}
+          middlewares:
+          - ratelimit
+          - userauth
+          - sec-headers
+{{- if .Values.api_gateway.compression }}
+          - compression
+{{- end }}
+          rule: "PathRegexp(`^/api/management/v[0-9]+/devicemonitor`)"
+          service: devicemonitor
+          tls: {{ $isTls }}
+
+        #
+        # gui
+        #
+        gui:
+          entrypoints: {{ $scheme }}
+          middlewares:
+          - ratelimit
+{{- if .Values.api_gateway.security_redirect }}
+          - security-redirect
+{{- end }}
+          - sec-headers
+{{- if .Values.api_gateway.compression }}
+          - compression
+{{- end }}
+          rule: "PathPrefix(`/`)"
+          priority: 1
+          service: gui
+          tls: {{ $isTls }}
+
+        #
+        # inventory
+        #
+        inventoryV1:
+          entrypoints: {{ $scheme }}
+          middlewares:
+          - ratelimit
+          - devauth
+          - inventoryV1-replacepathregex
+          - sec-headers
+{{- if .Values.api_gateway.compression }}
+          - compression
+{{- end }}
+          rule: "PathRegexp(`^/api/devices/v1/inventory`)"
+          service: inventory
+          tls: {{ $isTls }}
+
+        inventoryV2:
+          entrypoints: {{ $scheme }}
+          middlewares:
+          - ratelimit
+          - devauth
+          - sec-headers
+{{- if .Values.api_gateway.compression }}
+          - compression
+{{- end }}
+          rule: "PathRegexp(`^/api/devices/v2/inventory`)"
+          service: inventory
+          tls: {{ $isTls }}
+
+        inventoryMgmtV1:
+          entrypoints: {{ $scheme }}
+          middlewares:
+          - ratelimit
+          - userauth
+          - inventoryMgmtV1-replacepathregex
+          - sec-headers
+{{- if .Values.api_gateway.compression }}
+          - compression
+{{- end }}
+          rule: "PathRegexp(`^/api/management/v1/inventory`)"
+          service: inventory
+          tls: {{ $isTls }}
+
+        inventoryMgmtV2:
+          entrypoints: {{ $scheme }}
+          middlewares:
+          - ratelimit
+          - userauth
+          - sec-headers
+{{- if .Values.api_gateway.compression }}
+          - compression
+{{- end }}
+          rule: "PathRegexp(`^/api/management/v2/inventory`)"
+          service: inventory
+          tls: {{ $isTls }}
+
+        #
+        # tenantadm
+        #
+        tenantadm:
+          entrypoints: {{ $scheme }}
+          middlewares:
+          - ratelimit
+          - userauth
+          - sec-headers
+{{- if .Values.api_gateway.compression }}
+          - compression
+{{- end }}
+          rule: "PathRegexp(`^/api/management/v[0-9]+/tenantadm`)"
+          service: tenantadm
+          tls: {{ $isTls }}
+
+        tenantadmSignup:
+          entrypoints: {{ $scheme }}
+          middlewares:
+          - ratelimit
+          - sec-headers
+{{- if .Values.api_gateway.compression }}
+          - compression
+{{- end }}
+          rule: >-
+            (Method(`OPTIONS`) || Method(`POST`)) &&
+            PathRegexp(`/api/management/v[0-9]+/tenantadm/tenants/trial$`)
+          service: tenantadm
+          tls: {{ $isTls }}
+
+        #
+        # useradm
+        #
+        useradm:
+          entrypoints: {{ $scheme }}
+          middlewares:
+          - ratelimit
+          - userauth
+          - sec-headers
+{{- if .Values.api_gateway.compression }}
+          - compression
+{{- end }}
+          rule: "PathRegexp(`^/api/management/v[0-9]+/useradm`)"
+          service: useradm
+          tls: {{ $isTls }}
+
+        useradmNoAuth:
+          entrypoints: {{ $scheme }}
+          middlewares:
+{{- if .Values.api_gateway.authRateLimit }}
+          - authRateLimit
+{{- else }}
+          - ratelimit
+{{- end }}
+          - sec-headers
+{{- if .Values.api_gateway.compression }}
+          - compression
+{{- end }}
+          rule: >-
+            !Path(`/api/management/v1/useradm/auth/logout`) &&
+            PathRegexp(`^/api/management/v[0-9]+/useradm/(auth|oauth2|oidc)`)
+          service: useradm
+          tls: {{ $isTls }}
+{{- if and .Values.api_gateway.storage_proxy.enabled .Values.api_gateway.minio.enabled }}
+    {{- fail "You cannot set both api_gateway.storage_proxy and api_gateway.minio. Choose one" }}
+{{- else if and .Values.api_gateway.minio.enabled (not .Values.api_gateway.storage_proxy.enabled) }}
+
+        #
+        # minio
+        #
+        minio:
+          entrypoints: {{ $scheme }}
+          middlewares:
+          - ratelimit
+          rule: {{ template "minioRule" . }}
+          priority: 900
+          service: minio
+          tls: {{ $isTls }}
+{{- else if and .Values.api_gateway.storage_proxy.enabled (not .Values.api_gateway.minio.enabled) }}
+
+        #
+        # storage_proxy
+        #
+        storage_proxy:
+          entrypoints: {{ $scheme }}
+          middlewares:
+          - ratelimit
+          - storageProxyHeaders
+          rule: {{ include "mender.storageProxyRule" . }}
+          priority: 65535
+          service: storage_proxy
+          tls: {{ $isTls }}
+{{- end }}
+
+      #
+      # Services
+      #
+      services:
+
+        auditlogs:
+          loadBalancer:
+            servers:
+            - url: "http://{{ .Values.auditlogs.service.name }}:{{ .Values.auditlogs.service.port }}"
+
+        iot-manager:
+          loadBalancer:
+            servers:
+            - url: "http://{{ .Values.iot_manager.service.name }}:{{ .Values.iot_manager.service.port }}"
+
+        deviceauth:
+          loadBalancer:
+            servers:
+            - url: "http://{{ .Values.device_auth.service.name }}:{{ .Values.device_auth.service.port }}"
+
+        deviceconnect:
+          loadBalancer:
+            servers:
+            - url: "http://{{ .Values.deviceconnect.service.name }}:{{ .Values.deviceconnect.service.port }}"
+
+        deviceconfig:
+          loadBalancer:
+            servers:
+            - url: "http://{{ .Values.deviceconfig.service.name }}:{{ .Values.deviceconfig.service.port }}"
+
+        devicemonitor:
+          loadBalancer:
+            servers:
+            - url: "http://{{ .Values.devicemonitor.service.name }}:{{ .Values.devicemonitor.service.port }}"
+
+        deployments:
+          loadBalancer:
+            servers:
+            - url: "http://{{ .Values.deployments.service.name }}:{{ .Values.deployments.service.port }}"
+
+        gui:
+          loadBalancer:
+            servers:
+            - url: "http://{{ .Values.gui.service.name }}:{{ .Values.gui.service.port }}"
+
+        inventory:
+          loadBalancer:
+            servers:
+            - url: "http://{{ .Values.inventory.service.name }}:{{ .Values.inventory.service.port }}"
+
+        tenantadm:
+          loadBalancer:
+            servers:
+            - url: "http://{{ .Values.tenantadm.service.name }}:{{ .Values.tenantadm.service.port }}"
+
+        useradm:
+          loadBalancer:
+            servers:
+            - url: "http://{{ .Values.useradm.service.name }}:{{ .Values.useradm.service.port }}"
+{{- if and .Values.api_gateway.storage_proxy.enabled .Values.api_gateway.minio.enabled }}
+    {{- fail "You cannot set both api_gateway.storage_proxy and api_gateway.minio. Choose one" }}
+{{- else if and .Values.api_gateway.minio.enabled (not .Values.api_gateway.storage_proxy.enabled) }}
+
+        minio:
+          loadBalancer:
+            servers:
+            - url: "{{ .Values.api_gateway.minio.url }}"
+{{- else if and .Values.api_gateway.storage_proxy.enabled (not .Values.api_gateway.minio.enabled) }}
+
+        storage_proxy:
+          loadBalancer:
+            passHostHeader: {{ .Values.api_gateway.passHostHeader | default false }}
+            servers:
+            - url: {{ include "mender.storageProxyUrl" . }}
+{{- end }}
+
+      #
+      # Middlewares
+      #
+      middlewares:
+{{- if .Values.api_gateway.env.SSL }}
+        redirect-to-https:
+          redirectscheme:
+            scheme: https
+{{- end }}
+{{- if .Values.api_gateway.storage_proxy.enabled }}
+{{/* Workaround for SeaweedFS which replaces the Host header with X-Forwarded-Host */}}
+        storageProxyHeaders:
+          headers:
+            customRequestHeaders:
+              X-Forwarded-Host: ""
+              X-Forwarded-Port: ""
+{{- end }}
+
+{{- if .Values.api_gateway.security_redirect }}
+        security-redirect:
+          {{- toYaml .Values.api_gateway.security_redirect | nindent 10 }}
+{{- end}}
+
+        sec-headers:
+          headers:
+            referrerPolicy: "no-referrer"
+            stsSeconds: 31536000
+            forceSTSHeader: true
+            stsPreload: true
+            stsIncludeSubdomains: true
+            contentTypeNosniff: true
+            browserXssFilter: true
+            customRequestHeaders:
+              "X-Forwarded-Proto": "{{ $scheme }}"
+              "X-Mender-Version": "{{ .Chart.Version }}"
+              "X-Mender-Chart": "{{ .Chart.Name }}-{{ .Chart.Version }}"
+
+        compression:
+{{- if .Values.api_gateway.compression }}
+          compress: true
+{{- else }}
+          compress: false
+{{- end }}
+
+        ratelimit:
+          ratelimit:
+{{ toYaml .Values.api_gateway.rateLimit | indent 12 }}
+
+{{- if .Values.api_gateway.authRateLimit }}
+        authRateLimit:
+          ratelimit:
+{{ toYaml .Values.api_gateway.authRateLimit | indent 12 }}
+{{- end }}
+
+        devauth:
+          forwardAuth:
+            address: "http://{{ .Values.device_auth.service.name }}:{{ .Values.device_auth.service.port }}/api/internal/v1/devauth/tokens/verify"
+            authResponseHeaders: "X-MEN-RequestID"
+
+        userauth:
+          forwardAuth:
+            address: "http://{{ .Values.useradm.service.name }}:{{ .Values.useradm.service.port }}/api/internal/v1/useradm/auth/verify"
+            authResponseHeaders: "X-MEN-RequestID,X-MEN-RBAC-Inventory-Groups,X-MEN-RBAC-Deployments-Groups,X-MEN-RBAC-Releases-Tags"
+
+        inventoryV1-replacepathregex:
+          replacepathregex:
+            regex: "^/api/devices/v1/inventory/(.*)"
+            replacement: "/api/0.1.0/attributes"
+
+        inventoryMgmtV1-replacepathregex:
+          replacepathregex:
+            regex: "^/api/management/v1/inventory/(.*)"
+            replacement: "/api/0.1.0/$1"
+
+{{- if $isTls }}
+    tls:
+      certificates:
+        {{- if .Values.featureGates.k8sTlsSecrets }}
+        - certFile: /etc/traefik/certs/tls.crt
+          keyFile: /etc/traefik/certs/tls.key
+        {{- else }}
+        - certFile: /etc/traefik/certs/cert.crt
+          keyFile: /etc/traefik/certs/private.key
+        {{- end }}
+          stores:
+            - default
+{{- end }}

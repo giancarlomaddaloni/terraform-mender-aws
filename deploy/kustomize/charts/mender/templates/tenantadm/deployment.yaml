@@ -1,0 +1,39 @@
+{{- if and (.Values.global.enterprise) (.Values.tenantadm.enabled) }}
+{{- $context := (dict "dot" . "component" "tenantadm" "override" .Values.tenantadm) -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "mender.fullname" . }}-tenantadm
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mender.labels" . | nindent 4 }}
+    app.kubernetes.io/name: {{ include "mender.fullname" . }}-tenantadm
+    app.kubernetes.io/component: tenantadm
+spec:
+  {{- if not (or .Values.tenantadm.hpa .Values.default.hpa) }}
+  replicas: {{ .Values.tenantadm.replicas }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "mender.fullname" . }}-tenantadm
+
+  # if deployment is not completed within 10 min, consider it failed,
+  # as result deployment Reason=ProgressDeadlineExceeded
+  # needs to be big enough to rollout to complete
+  progressDeadlineSeconds: 600
+
+  # Rollout upgrade
+  {{- $updateStrategy := coalesce .Values.tenantadm.updateStrategy .Values.default.updateStrategy }}
+  {{- if $updateStrategy }}
+  strategy: {{- toYaml $updateStrategy | nindent 4 }}
+  {{- end }}
+
+  {{- $minReadySeconds := coalesce .Values.tenantadm.minReadySeconds .Values.default.minReadySeconds }}
+  {{- if $minReadySeconds }}
+  minReadySeconds: {{ $minReadySeconds }}
+  {{- end }}
+
+  template:
+    {{- include "mender.tenantadmPodTemplate" $context | nindent 4 }}
+
+{{- end }}

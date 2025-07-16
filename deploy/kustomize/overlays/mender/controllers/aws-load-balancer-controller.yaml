@@ -7,7 +7,7 @@ replicaCount: 2
 revisionHistoryLimit: 10
 
 image:
-  repository: public.ecr.aws/eks/aws-load-balancer-controller
+  repository: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mender-lb-eks
   tag: v2.13.3
   pullPolicy: IfNotPresent
 
@@ -24,14 +24,15 @@ fullnameOverride: ""
 autoscaling:
   enabled: false
   minReplicas: 1
-  maxReplicas: 5
+  maxReplicas: 2
   targetCPUUtilizationPercentage: 80
 
 serviceAccount:
   # Specifies whether a service account should be created
   create: true
   # Annotations to add to the service account
-  annotations: {}
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::194722422560:role/mender-lb-sa
   # The name of the service account to use.
   # If not set and create is true, a name is generated using the fullname template
   name:
@@ -121,7 +122,7 @@ certManager:
   renewBefore:
 
 # The name of the Kubernetes cluster. A non-empty value is required
-clusterName:
+clusterName: mender-eks
 
 # cluster contains configurations specific to the kubernetes cluster
 cluster:
@@ -136,7 +137,7 @@ ingressClass: alb
 ingressClassParams:
   create: true
   # The name of ingressClassParams resource will be referred in ingressClass
-  name:
+  name: 
   spec: {}
     # Due to dependency issue, the validation webhook ignores this particular ingressClassParams resource.
     # We recommend creating ingressClassParams resources separately after installing this chart and the
@@ -161,10 +162,10 @@ ingressClassParams:
 createIngressClassResource: true
 
 # The AWS region for the kubernetes cluster. Set to use KIAM or kube2iam for example.
-region:
+region: us-east-1
 
 # The VPC ID for the Kubernetes cluster. Set this manually when your pods are unable to use the metadata service to determine this automatically
-vpcId:
+vpcId: vpc-029870b662c981215
 
 # This is alternative to vpcId. Set this when your pods are unable to use the metadata service to determine VPC automatically.
 vpcTags: {}
@@ -193,13 +194,13 @@ defaultTargetType: instance
 enablePodReadinessGateInject:
 
 # Enable Shield addon for ALB (default true)
-enableShield:
+enableShield: false
 
 # Enable WAF addon for ALB (default true)
-enableWaf:
+enableWaf: false
 
 # Enable WAF V2 addon for ALB (default true)
-enableWafv2:
+enableWafv2: false
 
 # Maximum number of concurrently running reconcile loops for ingress (default 3)
 ingressMaxConcurrentReconciles:

@@ -1,0 +1,5 @@
+
+Mender helm {{ .Chart.Version }} has been deployed!
+
+Thank you for using Mender.
+Release name: {{ .Release.Name }}

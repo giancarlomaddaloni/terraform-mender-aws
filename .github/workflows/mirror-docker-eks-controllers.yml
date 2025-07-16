@@ -44,7 +44,7 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Mirror images from defined groups
+      - name: Mirror images from IMAGE_GROUPS
         run: |
           set -euo pipefail
 

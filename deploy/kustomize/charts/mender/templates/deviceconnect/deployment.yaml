@@ -1,0 +1,41 @@
+{{- if .Values.deviceconnect.enabled }}
+{{- $context := dict "dot" .
+                     "override" .Values.deviceconnect
+                     "component" "deviceconnect" -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "mender.fullname" . }}-deviceconnect
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mender.labels" . | nindent 4 }}
+    app.kubernetes.io/name: {{ include "mender.fullname" . }}-deviceconnect
+    app.kubernetes.io/component: deviceconnect
+spec:
+  {{- if not (or .Values.deviceconnect.hpa .Values.default.hpa) }}
+  replicas: {{ .Values.deviceconnect.replicas }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "mender.fullname" . }}-deviceconnect
+
+  # if deployment is not completed within 10 min, consider it failed,
+  # as result deployment Reason=ProgressDeadlineExceeded
+  # needs to be big enough to rollout to complete
+  progressDeadlineSeconds: 600
+
+  # Rollout upgrade
+  {{- $updateStrategy := coalesce .Values.deviceconnect.updateStrategy .Values.default.updateStrategy }}
+  {{- if $updateStrategy }}
+  strategy: {{- toYaml $updateStrategy | nindent 4 }}
+  {{- end }}
+
+  {{- $minReadySeconds := coalesce .Values.deviceconnect.minReadySeconds .Values.default.minReadySeconds }}
+  {{- if $minReadySeconds }}
+  minReadySeconds: {{ $minReadySeconds }}
+  {{- end }}
+
+  template:
+    {{- include "mender.deviceconnectPodTemplate" $context | nindent 4 }}
+
+{{- end }}

@@ -13,12 +13,4 @@ metadata:
     aws-observability: enabled
 
 
----
-
-kind: Namespace
-apiVersion: v1
-metadata:
-  name: mender
-  labels:
-    aws-observability: enabled
 

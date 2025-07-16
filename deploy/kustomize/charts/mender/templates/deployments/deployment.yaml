@@ -1,0 +1,39 @@
+{{- if .Values.deployments.enabled }}
+{{- $context := dict "dot" . "component" "deployments" "override" .Values.deployments -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "mender.fullname" . }}-deployments
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mender.labels" . | nindent 4 }}
+    app.kubernetes.io/name: {{ include "mender.fullname" . }}-deployments
+    app.kubernetes.io/component: deployments
+spec:
+  {{- if not (or .Values.deployments.hpa .Values.default.hpa) }}
+  replicas: {{ .Values.deployments.replicas }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "mender.fullname" . }}-deployments
+
+  # if deployment is not completed within 10 min, consider it failed,
+  # as result deployment Reason=ProgressDeadlineExceeded
+  # needs to be big enough to rollout to complete
+  progressDeadlineSeconds: 600
+
+  # Rollout upgrade
+  {{- $updateStrategy := coalesce .Values.deployments.updateStrategy .Values.default.updateStrategy }}
+  {{- if $updateStrategy }}
+  strategy: {{- toYaml $updateStrategy | nindent 4 }}
+  {{- end }}
+
+  {{- $minReadySeconds := coalesce .Values.deployments.minReadySeconds .Values.default.minReadySeconds }}
+  {{- if $minReadySeconds }}
+  minReadySeconds: {{ $minReadySeconds }}
+  {{- end }}
+
+  template:
+    {{- include "mender.deploymentsPodTemplate" $context | nindent 4 }}
+
+{{- end }}

@@ -1,0 +1,42 @@
+{{- if .Values.useradm.enabled }}
+{{- $context := (dict "dot" .
+                      "component" "useradm"
+                      "override" .Values.useradm) -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "mender.fullname" . }}-useradm
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mender.labels" . | nindent 4 }}
+    app.kubernetes.io/name: {{ include "mender.fullname" . }}-useradm
+    app.kubernetes.io/component: useradm
+spec:
+  {{- if not (or .Values.useradm.hpa .Values.default.hpa) }}
+  replicas: {{ .Values.useradm.replicas }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "mender.fullname" . }}-useradm
+
+  # if deployment is not completed within 10 min, consider it failed,
+  # as result deployment Reason=ProgressDeadlineExceeded
+  # needs to be big enough to rollout to complete
+
+  progressDeadlineSeconds: 600
+
+  # Rollout upgrade
+  {{- $updateStrategy := coalesce .Values.useradm.updateStrategy .Values.default.updateStrategy }}
+  {{- if $updateStrategy }}
+  strategy: {{- toYaml $updateStrategy | nindent 4 }}
+  {{- end }}
+
+  {{- $minReadySeconds := coalesce .Values.useradm.minReadySeconds .Values.default.minReadySeconds }}
+  {{- if $minReadySeconds }}
+  minReadySeconds: {{ $minReadySeconds }}
+  {{- end }}
+
+  template:
+    {{- include "mender.useradmPodTemplate" $context | nindent 4 }}
+
+{{- end }}

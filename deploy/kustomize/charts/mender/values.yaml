@@ -1,0 +1,1470 @@
+fullnameOverride: ""
+
+global:
+  enterprise: false
+  hosted: false
+  auditlogs: true
+  priorityClassName: ""
+  mongodb:
+    existingSecret: ""
+    URL: ""
+  nats:
+    existingSecret: ""
+    URL: ""
+  redis:
+    URL: ""
+    existingSecret: ""
+  storage: "aws"
+  s3:
+    existingSecret: ""
+    AWS_URI: "https://mender.example.com"
+    AWS_EXTERNAL_URI: ""
+    AWS_BUCKET: mender-artifact-storage
+    AWS_REGION: us-east-1
+    AWS_ACCESS_KEY_ID: myaccesskey
+    AWS_SECRET_ACCESS_KEY: mysecretkey
+    AWS_FORCE_PATH_STYLE: "true"
+    AWS_TAG_ARTIFACT: "true"
+    AWS_SERVICE_ACCOUNT_NAME: ""
+  azure:
+    AUTH_CONNECTION_STRING: ""
+    AUTH_SHARED_KEY_ACCOUNT_NAME: ""
+    AUTH_SHARED_KEY_ACCOUNT_KEY: ""
+    AUTH_SHARED_KEY_URI: ""
+    CONTAINER_NAME: mender-artifact-storage
+  smtp:
+    existingSecret: ""
+    EMAIL_SENDER: root@localhost
+    SMTP_HOST: "localhost:25"
+    SMTP_AUTH_MECHANISM: "PLAIN"
+    SMTP_USERNAME: "null"
+    SMTP_PASSWORD: "null"
+    SMTP_SSL: "false"
+  url: "https://mender.example.com"
+  # guardrails for subcharts
+  namespaceOverride: ""
+
+# default values:
+# these values applies to all resources
+# and are applied when specific service values are not
+# present
+default:
+  affinity: {}
+  tolerations: {}
+
+  # The default.image depends on the state of `global.enterprise`:
+  # If true:  registry.mender.io/mender-server-enterprise
+  # If false: docker.io/mendersoftware
+  # The tag defaults to the chart version.
+  image: {}
+  #   registry: docker.io|registry.mender.io
+  #   repository: mendersoftware|mender-server-enterprise
+  #   tag: {{ .Chart.AppVersion }}
+  #   pullPolicy: IfNotPresent
+
+  # HorizontalPodAutoscaler default resources
+  hpa: {}
+  # enabled: true
+  # minReplicas: 1
+  # maxReplicas: 3
+  # metrics: {}
+  # behavior: {}
+
+  # PodDisruptionBudget default resources
+  pdb:
+    enabled: false
+    minAvailable: 1
+    # maxUnavailable: 1
+
+  # custom default envs for every service
+  customEnvs: []
+  # - name: LOG_LEVEL
+  #   value: WARN
+
+  # Custom default imagePullSecrets
+  imagePullSecrets: []
+  # - name: secret1
+  # - name: secret2
+
+  # default.updateStrategy: Strategy to use to update existing pods
+  # Example:
+  # updateStrategy:
+  #   rollingUpdate:
+  #     maxSurge: 25%
+  #     maxUnavailable: 25%
+  #
+  updateStrategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 0
+
+  # default.minReadySeconds: Minimum number of seconds for which a newly
+  # created pod should be ready without any of its containers crashing,
+  minReadySeconds: 0
+
+  # Override the properties of the Readiness and Liveness probes
+  probesOverrides:
+    {}
+    # timeoutSeconds: 1
+    # successThreshold: 1
+    # failureThreshold: 3
+
+serviceAccount:
+  create: false
+  name:
+  labels: {}
+  annotations: {}
+
+# Enabling this will publically expose your Mender instance.
+ingress:
+  enabled: false
+  # For Kubernetes >= 1.18 you should specify the ingress-controller via the
+  # field ingressClassName
+  # See https://kubernetes.io/blog/2020/04/02/improvements-to-the-ingress-api-in-kubernetes-1.18/#specifying-the-class-of-an-ingress
+  # ingressClassName: nginx
+
+  annotations: {}
+  # kubernetes.io/ingress.class: nginx
+  # kubernetes.io/tls-acme: "true"
+  # kubernetes.io/ingress.class: gce
+  # kubernetes.io/ingress.class: alb
+  # alb.ingress.kubernetes.io/healthcheck-path: /ui/
+  # cert-manager.io/issuer: "letsencrypt"
+  path: /
+  extraPaths: []
+  # - path: /*
+  #   backend:
+  #     serviceName: ssl-redirect
+  #     servicePort: use-annotation
+  hosts:
+    - mender.example.com
+  tls:
+    # this secret must exists or can be created from a working cert-manager
+    # instance
+    - secretName: mender-ingress-tls
+      hosts:
+        - mender.example.com
+
+# Helm chart smoke tests
+tests:
+  enabled: false
+
+# Using default values from https://artifacthub.io/packages/helm/bitnami/mongodb
+mongodb:
+  enabled: true
+  architecture: replicaset
+  externalAccess:
+    enabled: false
+    service:
+      type: LoadBalancer
+  # replicaCount sets the number of secondaries (min: 2)
+  replicaCount: 2
+  # updateStrategy ensure that the nodes are updated one
+  # at the time to avoid downtime.
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  # PodDisruptionBudget ensure that the majority of nodes are available.
+  # Make sure to update the PodDisruptionBudget if you increase the number of
+  # replicas.
+  pdb:
+    enabled: true
+    minAvailable: 2
+    maxUnavailable: 1
+  auth:
+    enabled: true
+    rootPassword: "pleasechangeme"
+    replicaSetKey: "pleasechangeme"
+    username: "mender"
+    # reference to Bitnami chart only:
+    # the database name is managed by Mender only
+    database: "mender"
+  global:
+    storageClass: ""
+  commonAnnotations:
+    helm.sh/hook: "pre-install"
+    helm.sh/hook-weight: "-100"
+  service:
+    nameOverride: ""
+
+# Using default values from
+# https://github.com/nats-io/k8s/tree/main/helm/charts/nats
+nats:
+  enabled: true
+  cluster:
+    enabled: true
+    replicas: 3
+  fullnameOverride: ""
+  nats:
+    image:
+      tag: "2.9.25-scratch"
+    jetstream:
+      enabled: true
+      memStorage:
+        enabled: true
+        size: "1Gi"
+      fileStorage:
+        enabled: true
+        size: "2Gi"
+        storageDirectory: /data/
+        storageClassName: ""
+
+api_gateway:
+  enabled: true
+  deploymentAnnotations: {}
+  podAnnotations: {}
+  dashboard: false
+  image:
+    registry: docker.io
+    repository: traefik
+    tag: 3.4.3
+    imagePullPolicy: IfNotPresent
+  imagePullSecrets: []
+  replicas: 1
+  resources:
+    limits:
+      cpu: 600m
+      memory: 1Gi
+    requests:
+      cpu: 600m
+      memory: 512Mi
+  affinity: {}
+  nodeSelector: {}
+  httpPort: 9080
+  httpsPort: 9443
+  service:
+    name: mender-api-gateway
+    annotations: {}
+    type: ClusterIP
+    httpPort: 80
+    httpsPort: 443
+  env:
+    SSL: false
+  minio:
+    enabled: false
+    podAnnotations: {}
+    url: "http://minio:9000"
+    customRule: null
+  storage_proxy:
+    enabled: true
+    url: "http://seaweedfs-s3:8333"
+    customRule: "PathRegexp(`^/mender-artifact-storage`)"
+    passHostHeader: false
+  compression: true
+  security_redirect: null
+  rateLimit:
+    average: 100
+    burst: 100
+    period: "1s"
+    sourceCriterion:
+      ipStrategy:
+        depth: 1
+  extraArgs: []
+  authRateLimit: null
+  podSecurityContext:
+    enabled: false
+    runAsNonRoot: true
+    runAsUser: 65534
+  containerSecurityContext:
+    enabled: false
+    allowPrivilegeEscalation: false
+    runAsUser: 65534
+  hpa: {}
+  pdb: {}
+  priorityClassName: ""
+  accesslogs: true
+  certs: {}
+  # cert: |-
+  #   -----BEGIN CERTIFICATE-----
+  #   ...
+  #   -----END CERTIFICATE-----
+  # key: |-
+  #   -----BEGIN PRIVATE KEY-----
+  #   ...
+  #   -----END PRIVATE KEY-----
+  # existingSecret: my-secret-name
+
+  # api_gateway.updateStrategy: Strategy to use to update existing pods
+  # Example:
+  # updateStrategy:
+  #   rollingUpdate:
+  #     maxSurge: 25%
+  #     maxUnavailable: 25%
+
+  # prometheus pod monitor
+  podMonitor:
+    enabled: false
+    customLabels:
+      {}
+      # prometheus-operated: "true"
+
+  # Override the properties of the Readiness, Liveness and Startup probes
+  probesOverrides:
+    # timeoutSeconds: 2
+    # successThreshold: 2
+    failureThreshold: 3
+
+deployments:
+  enabled: true
+  podAnnotations: {}
+  automigrate: false
+  mongodbExistingSecret: ""
+  replicas: 1
+  resources:
+    limits:
+      cpu: 300m
+      memory: 128Mi
+    requests:
+      cpu: 300m
+      memory: 64Mi
+  affinity: {}
+  directUpload:
+    enabled: true
+    jitter: "3s"
+    skipVerify: false
+  daemonSchedule: "15 * * * *"
+  # image:
+  #   registry: ""
+  #   repository: ""
+  #   pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  nodeSelector: {}
+  service:
+    name: mender-deployments
+    annotations: {}
+    type: ClusterIP
+    port: 8080
+  env:
+    DEPLOYMENTS_MIDDLEWARE: prod
+    DEPLOYMENTS_PRESIGN_SECRET: ""
+  presignSecretExistingSecret: ""
+  podSecurityContext:
+    enabled: false
+    runAsNonRoot: true
+    runAsUser: 65534
+  containerSecurityContext:
+    enabled: false
+    allowPrivilegeEscalation: false
+    runAsUser: 65534
+  hpa: {}
+  pdb: {}
+  priorityClassName: ""
+
+  ## Migration Job
+
+  ## deployments.migrationRestartPolicy
+  # migrationRestartPolicy: "Never"
+
+  ## deployments.migrationResources
+  ## K8s resources for the migration job
+  ## If not specified, default deployments.resources applies
+  # migrationResources:
+  #   limits:
+  #     cpu: 150m
+  #     memory: 128Mi
+  #   requests:
+  #     cpu: 150m
+  #     memory: 64Mi
+
+  # custom envs
+  # customEnvs:
+  # - name: LOG_LEVEL
+  #   value: DEBUG
+
+  # iot_manager.updateStrategy: Strategy to use to update existing pods
+  # Example:
+  # updateStrategy:
+  #   rollingUpdate:
+  #     maxSurge: 25%
+  #     maxUnavailable: 25%
+
+  # Override the properties of the Readiness, Liveness and Startup probes
+  probesOverrides:
+    {}
+    # timeoutSeconds: 2
+    # successThreshold: 2
+    # failureThreshold: 6
+
+  # Maximum Artifacts image size in bytes.
+  storageMaxImageSize: "10737418240" # 10 GiB
+
+  # Maximum data size for requests to generate artifacts.
+  storageMaxGenerateDataSize: "536870912" # 512 MiB
+
+
+device_auth:
+  enabled: true
+  podAnnotations: {}
+  automigrate: false
+  replicas: 1
+  resources:
+    limits:
+      cpu: 350m
+      memory: 128Mi
+    requests:
+      cpu: 350m
+      memory: 128Mi
+  affinity: {}
+  # image:
+  #   registry: ""
+  #   repository: ""
+  #   pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  nodeSelector: {}
+  service:
+    name: mender-device-auth
+    annotations: {}
+    type: ClusterIP
+    port: 8080
+  env:
+    DEVICEAUTH_JWT_ISSUER: Mender
+    DEVICEAUTH_JWT_EXP_TIMEOUT: 604800
+    DEVICEAUTH_MIDDLEWARE: prod
+    DEVICEAUTH_REDIS_DB: "1"
+    DEVICEAUTH_REDIS_TIMEOUT_SEC: "1"
+    DEVICEAUTH_REDIS_LIMITS_EXPIRE_SEC: "3600"
+  podSecurityContext:
+    enabled: false
+    runAsNonRoot: true
+    runAsUser: 65534
+  containerSecurityContext:
+    enabled: false
+    allowPrivilegeEscalation: false
+    runAsUser: 65534
+  hpa: {}
+  pdb: {}
+  priorityClassName: ""
+  certs: {}
+  # key: |-
+  #   -----BEGIN PRIVATE KEY-----
+  #   ...
+  #   -----END PRIVATE KEY-----
+  # existingSecret: my-secret-name
+
+  ## Migration Job
+
+  ## device_auth.migrationRestartPolicy
+  # migrationRestartPolicy: "Never"
+
+  ## device_auth.migrationResources
+  ## K8s resources for the migration job
+  ## If not specified, default device_auth.resources applies
+  # migrationResources:
+  #   limits:
+  #     cpu: 150m
+  #     memory: 128Mi
+  #   requests:
+  #     cpu: 150m
+  #     memory: 64Mi
+
+  # custom envs
+  customEnvs: []
+  # - name: LOG_LEVEL
+  #   value: DEBUG
+
+  # device_auth.updateStrategy: Strategy to use to update existing pods
+  # Example:
+  # updateStrategy:
+  #   rollingUpdate:
+  #     maxSurge: 25%
+  #     maxUnavailable: 25%
+
+  # Override the properties of the Readiness, Liveness and Startup probes
+  probesOverrides:
+    {}
+    # timeoutSeconds: 2
+    # successThreshold: 2
+    # failureThreshold: 6
+
+  #
+  # Optional cronjobs for device auth.
+  # These cronjobs are used to perform maintenance tasks, like device licensing
+  #
+  cronjobs:
+    enabled: false
+    jobs: []
+    #   - name: device-auth-license-count
+    #     schedule: "7 3 * * *"
+    #     command: []
+    #     args:
+    #     - "license-count"
+    #     customEnvs:
+    #       - name: DEVICEAUTH_MONGO
+    #         valueFrom:
+    #           secretKeyRef:
+    #             key: MONGO_URL
+    #             name: mongodb-common
+    #     resources:
+    #       limits:
+    #         cpu: 100m
+    #         memory: 100Mi
+    #       requests:
+    #         cpu: 50m
+    #         memory: 50Mi
+    #     tolerations: []
+    #     priorityClassName: "mender-low-priority"
+    #     affinity: {}
+
+# Generate Delta Worker feature
+# Experimental feature, still in beta
+# will be released in the next Mender versions
+generate_delta_worker:
+  enabled: false
+  podAnnotations: {}
+  automigrate: true
+  replicas: 1
+  # persistence specifies parameters for the pvc templates created for the
+  # stateful set.
+  persistence:
+    # enabled adds pvc templates to the StatefulSet definition.
+    # If disabled, the service will use ephermeral storage.
+    enabled: true
+    accessModes: ["ReadWriteOnce"]
+    size: "40Gi"
+    storageClass: ""
+    # retetion specifies the retention policy for the pvc created by the
+    # StatefulSet.
+    retention:
+      whenDeleted: "Retain"
+      whenScaled: "Delete"
+  resources:
+    limits:
+      cpu: 100m
+      memory: 1024Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  affinity: {}
+  # image:
+  #   registry: ""
+  #   repository: ""
+  #   tag: ""
+  #   pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  nodeSelector: {}
+  priorityClassName: ""
+
+  # custom envs
+  customEnvs: []
+  # - name: LOG_LEVEL
+  #   value: DEBUG
+
+  # generate_delta_worker.updateStrategy: Strategy to use to update existing pods
+  # Example:
+  # updateStrategy:
+  #   rollingUpdate:
+  #     maxSurge: 25%
+  #     maxUnavailable: 25%
+
+gui:
+  enabled: true
+  podAnnotations: {}
+  replicas: 1
+  resources:
+    limits:
+      cpu: 20m
+      memory: 64Mi
+    requests:
+      cpu: 5m
+      memory: 16Mi
+  affinity: {}
+  # image:
+  #   registry: docker.io
+  #   repository: mendersoftware/gui
+  #   tag: ""
+  #   pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  nodeSelector: {}
+  service:
+    name: mender-gui
+    annotations: {}
+    type: ClusterIP
+    port: 80
+  httpPort: 8090
+  podSecurityContext:
+    enabled: false
+    runAsNonRoot: true
+    runAsUser: 65534
+  containerSecurityContext:
+    enabled: false
+    allowPrivilegeEscalation: false
+    runAsUser: 65534
+  priorityClassName: ""
+
+  # custom envs
+  customEnvs: []
+  # - name: LOG_LEVEL
+  #   value: DEBUG
+
+  # gui.updateStrategy: Strategy to use to update existing pods
+  # Example:
+  # updateStrategy:
+  #   rollingUpdate:
+  #     maxSurge: 25%
+  #     maxUnavailable: 25%
+
+  # Override the properties of the Readiness, Liveness and Startup probes
+  probesOverrides:
+    initialDelaySeconds: 2
+    periodSeconds: 5
+    # timeoutSeconds: 2
+    # successThreshold: 2
+    # failureThreshold: 6
+
+  # Horizontal Pod Autoscaling
+  hpa: {}
+
+inventory:
+  enabled: true
+  podAnnotations: {}
+  automigrate: false
+  mongodbExistingSecret: ""
+  replicas: 1
+  resources:
+    limits:
+      cpu: 300m
+      memory: 128Mi
+    requests:
+      cpu: 300m
+      memory: 128Mi
+  affinity: {}
+  # image:
+  #   registry: ""
+  #   repository: ""
+  #   tag: ""
+  #   pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  nodeSelector: {}
+  service:
+    name: mender-inventory
+    annotations: {}
+    type: ClusterIP
+    port: 8080
+  env:
+    INVENTORY_MIDDLEWARE: prod
+  podSecurityContext:
+    enabled: false
+    runAsNonRoot: true
+    runAsUser: 65534
+  containerSecurityContext:
+    enabled: false
+    allowPrivilegeEscalation: false
+    runAsUser: 65534
+  hpa: {}
+  pdb: {}
+  priorityClassName: ""
+
+  ## Migration Job
+
+  ## inventory.migrationRestartPolicy
+  # migrationRestartPolicy: "Never"
+
+  ## inventory.migrationResources
+  ## K8s resources for the migration job
+  ## If not specified, default inventory.resources applies
+  # migrationResources:
+  #   limits:
+  #     cpu: 150m
+  #     memory: 128Mi
+  #   requests:
+  #     cpu: 150m
+  #     memory: 64Mi
+
+  # inventory.updateStrategy: Strategy to use to update existing pods
+  # Example:
+  # updateStrategy:
+  #   rollingUpdate:
+  #     maxSurge: 25%
+  #     maxUnavailable: 25%
+
+  # custom envs
+  customEnvs: []
+  # - name: LOG_LEVEL
+  #   value: DEBUG
+
+  # Override the properties of the Readiness, Liveness and Startup probes
+  probesOverrides:
+    {}
+    # timeoutSeconds: 2
+    # successThreshold: 2
+    # failureThreshold: 6
+
+tenantadm:
+  enabled: true
+  podAnnotations: {}
+  replicas: 1
+  resources:
+    limits:
+      cpu: 150m
+      memory: 128Mi
+    requests:
+      cpu: 150m
+      memory: 64Mi
+  affinity: {}
+  # image:
+  #   registry: ""
+  #   repository: ""
+  #   tag: ""
+  #   pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  nodeSelector: {}
+  service:
+    name: mender-tenantadm
+    annotations: {}
+    type: ClusterIP
+    port: 8080
+  env:
+    TENANTADM_DEFAULT_API_LIMITS: '{"management":{"bursts":[],"quota":{"max_calls":600,"interval_sec":60}},"devices":{"bursts":[{"action":"POST","uri":"/api/devices/v1/authentication","min_interval_sec":5},{"action":"GET","uri":"/api/devices/v1/deployments/device/deployments/next","min_interval_sec":5},{"action":"POST","uri":"/api/devices/v1/deployments/device/deployments/next","min_interval_sec":5},{"action":"POST","uri":"/api/devices/v2/deployments/device/deployments/next","min_interval_sec":5},{"action":"GET","uri":"/api/devices/v1/deviceconfig/configuration","min_interval_sec":5},{"action":"POST","uri":"/api/devices/v1/deviceconfig/configuration","min_interval_sec":5},{"action":"PATCH","uri":"/api/devices/v1/inventory/device/attributes","min_interval_sec":5},{"action":"PUT","uri":"/api/devices/v1/inventory/device/attributes","min_interval_sec":5},{"action":"POST","uri":"/api/devices/v1/devicemonitor/alert","min_interval_sec":5},{"action":"POST","uri":"/api/devices/v1/devicemonitor/alert","min_interval_sec":5},{"action":"POST","uri":"/api/devices/v1/devicemonitor/config","min_interval_sec":5}],"quota":{"max_calls":60,"interval_sec":60}}}'
+    TENANTADM_MIDDLEWARE: prod
+    TENANTADM_SERVER_PRIV_KEY_PATH: /etc/tenantadm/rsa/private.pem
+    TENANTADM_RECAPTCHA_URL_VERIFY: https://www.google.com/recaptcha/api/siteverify
+  podSecurityContext:
+    enabled: false
+    runAsNonRoot: true
+    runAsUser: 65534
+  containerSecurityContext:
+    enabled: false
+    allowPrivilegeEscalation: false
+    runAsUser: 65534
+  hpa: {}
+  pdb: {}
+  priorityClassName: ""
+
+  ## Migration Job
+
+  ## tenantadm.migrationArgs: list of optional arguments
+  ## to pass to the migration job.
+  ## default: ["migrate"]
+  # migrationArgs: []
+
+  ## tenantadm.migrationRestartPolicy
+  # migrationRestartPolicy: "Never"
+
+  ## tenantadm.migrationResources
+  ## K8s resources for the migration job
+  ## If not specified, default tenantadm.resources applies
+  # migrationResources:
+  #   limits:
+  #     cpu: 150m
+  #     memory: 128Mi
+  #   requests:
+  #     cpu: 150m
+  #     memory: 64Mi
+
+  # custom envs
+  customEnvs: []
+  # - name: LOG_LEVEL
+  #   value: DEBUG
+
+  # tenantadm.updateStrategy: Strategy to use to update existing pods
+  # Example:
+  # updateStrategy:
+  #   rollingUpdate:
+  #     maxSurge: 25%
+  #     maxUnavailable: 25%
+
+  # Override the properties of the Readiness, Liveness and Startup probes
+  probesOverrides:
+    {}
+    # timeoutSeconds: 2
+    # successThreshold: 2
+    # failureThreshold: 6
+
+  #
+  # Optional cronjobs for tenantadm.
+  # These cronjobs are used to perform maintenance tasks, like deleting
+  # suspended tenants created for temporary purposes.
+  #
+  cronjobs:
+    enabled: false
+    jobs: []
+    #   - name: drop-suspended-tenants
+    #     schedule: "0 6 * * *"
+    #     command: []
+    #     args:
+    #     - "maintenance"
+    #     - "delete-suspended-tenants"
+    #     - "--threshold-days=30"
+    #     customEnvs:
+    #       - name: TENANTADM_MONGO
+    #         valueFrom:
+    #           secretKeyRef:
+    #             key: MONGO_URL
+    #             name: mongodb-common
+    #     resources:
+    #       limits:
+    #         cpu: 100m
+    #         memory: 100Mi
+    #       requests:
+    #         cpu: 50m
+    #         memory: 50Mi
+    #     tolerations: []
+    #     priorityClassName: "mender-low-priority"
+    #     affinity: {}
+
+useradm:
+  enabled: true
+  podAnnotations: {}
+  automigrate: false
+  replicas: 1
+  resources:
+    limits:
+      cpu: 150m
+      memory: 128Mi
+    requests:
+      cpu: 150m
+      memory: 64Mi
+  affinity: {}
+  # image:
+  #   registry: ""
+  #   repository: ""
+  #   tag: ""
+  #   pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  nodeSelector: {}
+  service:
+    name: mender-useradm
+    annotations: {}
+    type: ClusterIP
+    port: 8080
+  env:
+    USERADM_PROXY_COUNT: 2
+    USERADM_JWT_ISSUER: Mender Users
+    USERADM_JWT_EXP_TIMEOUT: 604800
+    USERADM_MIDDLEWARE: prod
+    USERADM_REDIS_DB: "1"
+    USERADM_REDIS_TIMEOUT_SEC: "1"
+    USERADM_REDIS_LIMITS_EXPIRE_SEC: "3600"
+    USERADM_TOTP_ISSUER: Mender
+  podSecurityContext:
+    enabled: false
+    runAsNonRoot: true
+    runAsUser: 65534
+  containerSecurityContext:
+    enabled: false
+    allowPrivilegeEscalation: false
+    runAsUser: 65534
+  hpa: {}
+  pdb: {}
+  priorityClassName: ""
+  certs: {}
+  # key: |-
+  #   -----BEGIN PRIVATE KEY-----
+  #   ...
+  #   -----END PRIVATE KEY-----
+  # existingSecret: my-secret-name
+
+  ## Migration Job
+
+  ## useradm.migrationRestartPolicy
+  # migrationRestartPolicy: "Never"
+
+  ## useradm.migrationResources
+  ## K8s resources for the migration job
+  ## If not specified, default useradm.resources applies
+  # migrationResources:
+  #   limits:
+  #     cpu: 150m
+  #     memory: 128Mi
+  #   requests:
+  #     cpu: 150m
+  #     memory: 64Mi
+
+  # custom envs
+  customEnvs: []
+  # - name: LOG_LEVEL
+  #   value: DEBUG
+
+  # useradm.updateStrategy: Strategy to use to update existing pods
+  # Example:
+  # updateStrategy:
+  #   rollingUpdate:
+  #     maxSurge: 25%
+  #     maxUnavailable: 25%
+
+  # Override the properties of the Readiness, Liveness and Startup probes
+  probesOverrides:
+    {}
+    # timeoutSeconds: 2
+    # successThreshold: 2
+    # failureThreshold: 6
+
+workflows:
+  enabled: true
+  podAnnotations: {}
+  automigrate: false
+  replicas: 1
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 10m
+      memory: 64Mi
+  affinity: {}
+  # image:
+  #   registry: ""
+  #   repository: ""
+  #   tag: ""
+  #   pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  nodeSelector: {}
+  service:
+    name: mender-workflows-server
+    annotations: {}
+    type: ClusterIP
+    port: 8080
+  podSecurityContext:
+    enabled: false
+    runAsNonRoot: true
+    runAsUser: 65534
+  containerSecurityContext:
+    enabled: false
+    allowPrivilegeEscalation: false
+    runAsUser: 65534
+  priorityClassName: ""
+
+  ## Migration Job
+
+  ## workflows.migrationRestartPolicy
+  # migrationRestartPolicy: "Never"
+
+  ## workflows.migrationResources
+  ## K8s resources for the migration job
+  ## If not specified, default workflows.resources applies
+  # migrationResources:
+  #   limits:
+  #     cpu: 150m
+  #     memory: 128MI
+  #   requests:
+  #     cpu: 150m
+  #     memory: 64Mi
+
+  # custom envs
+  customEnvs: []
+  # - name: LOG_LEVEL
+  #   value: DEBUG
+
+  # workflows.updateStrategy: Strategy to use to update existing pods
+  # Example:
+  # updateStrategy:
+  #   rollingUpdate:
+  #     maxSurge: 25%
+  #     maxUnavailable: 25%
+
+  # Custom volumeMounts for mouting
+  # credential files
+  mountSecrets: {}
+  # volumeMounts:
+  #   - mountPath: /my/mount/path
+  #     name: volume-name
+  #     readOnly: true
+  #     subPath: credentials.txt
+  # volumes:
+  #   - name: volume-name
+  #     secret:
+  #       defaultMode: 420
+  #       secretName: my-credential-file
+
+  # Override the properties of the Readiness, Liveness and Startup probes
+  probesOverrides:
+    {}
+    # timeoutSeconds: 2
+    # successThreshold: 2
+    # failureThreshold: 6
+
+create_artifact_worker:
+  enabled: true
+  podAnnotations: {}
+  automigrate: false
+  replicas: 1
+  resources:
+    limits:
+      cpu: 100m
+      memory: 1024Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  affinity: {}
+  # image:
+  #   registry: ""
+  #   repository: ""
+  #   tag: ""
+  #   pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  nodeSelector: {}
+  podSecurityContext:
+    enabled: false
+    runAsNonRoot: true
+    runAsUser: 65534
+  containerSecurityContext:
+    enabled: false
+    allowPrivilegeEscalation: false
+    runAsUser: 65534
+  priorityClassName: ""
+
+  # custom envs
+  customEnvs: []
+  # - name: LOG_LEVEL
+  #   value: DEBUG
+
+  # create_artifact_worker.updateStrategy: Strategy to use to update existing pods
+  # Example:
+  # updateStrategy:
+  #   rollingUpdate:
+  #     maxSurge: 25%
+  #     maxUnavailable: 25%
+
+auditlogs:
+  enabled: true
+  podAnnotations: {}
+  automigrate: false
+  # logRetentionSeconds gives the number of seconds before
+  # an audit event is evicted from the database
+  logRetentionSeconds: 7776000
+  replicas: 1
+  resources:
+    limits:
+      cpu: 50m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+  affinity: {}
+  # image:
+  #   registry: ""
+  #   repository: ""
+  #   tag: ""
+  #   pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  nodeSelector: {}
+  service:
+    name: mender-auditlogs
+    annotations: {}
+    type: ClusterIP
+    port: 8080
+  podSecurityContext:
+    enabled: false
+    runAsNonRoot: true
+    runAsUser: 65534
+  containerSecurityContext:
+    enabled: false
+    allowPrivilegeEscalation: false
+    runAsUser: 65534
+  hpa: {}
+  pdb: {}
+  priorityClassName: ""
+
+  ## Migration Job
+
+  ## auditlogs.migrationRestartPolicy
+  # migrationRestartPolicy: "Never"
+
+  ## auditlogs.migrationResources
+  ## K8s resources for the migration job
+  ## If not specified, default auditlogs.resources applies
+  # migrationResources:
+  #   limits:
+  #     cpu: 150m
+  #     memory: 128Mi
+  #   requests:
+  #     cpu: 150m
+  #     memory: 64Mi
+
+  # custom envs
+  customEnvs: []
+  # - name: LOG_LEVEL
+  #   value: DEBUG
+
+  # auditlogs.updateStrategy: Strategy to use to update existing pods
+  # Example:
+  # updateStrategy:
+  #   rollingUpdate:
+  #     maxSurge: 25%
+  #     maxUnavailable: 25%
+
+  # Override the properties of the Readiness, Liveness and Startup probes
+  probesOverrides:
+    {}
+    # timeoutSeconds: 2
+    # successThreshold: 2
+    # failureThreshold: 6
+
+iot_manager:
+  enabled: true
+  podAnnotations: {}
+  automigrate: false
+  replicas: 1
+  resources:
+    limits:
+      cpu: 50m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+  affinity: {}
+  # image:
+  #   registry: ""
+  #   repository: ""
+  #   tag: ""
+  #   pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  nodeSelector: {}
+  service:
+    name: mender-iot-manager
+    annotations: {}
+    type: ClusterIP
+    port: 8080
+  podSecurityContext:
+    enabled: false
+    runAsNonRoot: true
+    runAsUser: 65534
+  containerSecurityContext:
+    enabled: false
+    allowPrivilegeEscalation: false
+    runAsUser: 65534
+  hpa: {}
+  pdb: {}
+  priorityClassName: ""
+
+  ## Migration Job
+
+  ## iot_manager.migrationRestartPolicy
+  # migrationRestartPolicy: "Never"
+
+  ## iot_manager.migrationResources
+  ## K8s resources for the migration job
+  ## If not specified, default iot_manager.resources applies
+  # migrationResources:
+  #   limits:
+  #     cpu: 150m
+  #     memory: 128Mi
+  #   requests:
+  #     cpu: 150m
+  #     memory: 64Mi
+
+  # custom envs
+  customEnvs: []
+  # - name: LOG_LEVEL
+  #   value: DEBUG
+
+  # iot_manager.updateStrategy: Strategy to use to update existing pods
+  # Example:
+  # updateStrategy:
+  #   rollingUpdate:
+  #     maxSurge: 25%
+  #     maxUnavailable: 25%
+
+  # AES encryption key
+  # Specify an existing secret
+  aesEncryptionKey:
+    existingSecret: ""
+
+  # Override the properties of the Readiness, Liveness and Startup probes
+  probesOverrides:
+    {}
+    # timeoutSeconds: 2
+    # successThreshold: 2
+    # failureThreshold: 6
+
+  #
+  # Optional cronjobs for iot-manager.
+  # These cronjobs are used to perform maintenance tasks, like deleting
+  # suspended tenants created for temporary purposes.
+  #
+  cronjobs:
+    enabled: false
+    jobs: []
+    #   - name: iot-manager-sync-devices
+    #     schedule: "42 0 * * *"
+    #     command: []
+    #     args:
+    #     - "sync-devices'
+    #     - "--batch-size'
+    #     - "100"
+    #     customEnvs:
+    #     - name: IOT_MANAGER_WORKFLOWS_URL
+    #       value: http://mender-workflows-server:8080
+    #     - name: IOT_MANAGER_DEVICEAUTH_URL
+    #       value: http://mender-device-auth:8080
+    #     customEnvFroms:
+    #     - prefix: IOT_MANAGER_
+    #       secretRef:
+    #         name: mongodb-common
+    #     resources:
+    #       limits:
+    #         cpu: 150m
+    #         memory: 100Mi
+    #       requests:
+    #         cpu: 150m
+    #         memory: 64Mi
+    #     tolerations: []
+    #     priorityClassName: "mender-low-priority"
+    #     affinity: {}
+
+deviceconnect:
+  enabled: true
+  podAnnotations: {}
+  automigrate: false
+  replicas: 1
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  affinity: {}
+  # image:
+  #   registry: ""
+  #   repository: ""
+  #   tag: ""
+  #   pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  nodeSelector: {}
+  service:
+    name: mender-deviceconnect
+    annotations: {}
+    type: ClusterIP
+    port: 8080
+  podSecurityContext:
+    enabled: false
+    runAsNonRoot: true
+    runAsUser: 65534
+  containerSecurityContext:
+    enabled: false
+    allowPrivilegeEscalation: false
+    runAsUser: 65534
+  gracefulShutdownTimeout: "60s"
+  terminationGracePeriodSeconds: 65
+  hpa: {}
+  pdb: {}
+  priorityClassName: ""
+
+  ## Migration Job
+
+  ## deviceconnect.migrationRestartPolicy
+  # migrationRestartPolicy: "Never"
+
+  ## deviceconnect.migrationResources
+  ## K8s resources for the migration job
+  ## If not specified, default deviceconnect.resources applies
+  # migrationResources:
+  #   limits:
+  #     cpu: 150m
+  #     memory: 128Mi
+  #   requests:
+  #     cpu: 150m
+  #     memory: 64Mi
+
+  # custom envs
+  customEnvs: []
+  # - name: LOG_LEVEL
+  #   value: DEBUG
+
+  # deviceconnect.updateStrategy: Strategy to use to update existing pods
+  # Example:
+  # updateStrategy:
+  #   rollingUpdate:
+  #     maxSurge: 25%
+  #     maxUnavailable: 25%
+
+  # Override the properties of the Readiness, Liveness and Startup probes
+  probesOverrides:
+    {}
+    # timeoutSeconds: 2
+    # successThreshold: 2
+    # failureThreshold: 6
+
+deviceconfig:
+  enabled: true
+  podAnnotations: {}
+  automigrate: false
+  replicas: 1
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  affinity: {}
+  # image:
+  #   registry: ""
+  #   repository: ""
+  #   tag: ""
+  #   pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  nodeSelector: {}
+  service:
+    name: mender-deviceconfig
+    annotations: {}
+    type: ClusterIP
+    port: 8080
+  podSecurityContext:
+    enabled: false
+    runAsNonRoot: true
+    runAsUser: 65534
+  containerSecurityContext:
+    enabled: false
+    allowPrivilegeEscalation: false
+    runAsUser: 65534
+  hpa: {}
+  pdb: {}
+  priorityClassName: ""
+
+  ## Migration Job
+
+  ## deviceconfig.migrationRestartPolicy
+  # migrationRestartPolicy: "Never"
+
+  ## deviceconfig.migrationResources
+  ## K8s resources for the migration job
+  ## If not specified, default deviceconfig.resources applies
+  # migrationResources:
+  #   limits:
+  #     cpu: 150m
+  #     memory: 128Mi
+  #   requests:
+  #     cpu: 150m
+  #     memory: 64Mi
+
+  # custom envs
+  customEnvs: []
+  # - name: LOG_LEVEL
+  #   value: DEBUG
+
+  # deviceconfig.updateStrategy: Strategy to use to update existing pods
+  # Example:
+  # updateStrategy:
+  #   rollingUpdate:
+  #     maxSurge: 25%
+  #     maxUnavailable: 25%
+
+  # Override the properties of the Readiness, Liveness and Startup probes
+  probesOverrides:
+    {}
+    # timeoutSeconds: 2
+    # successThreshold: 2
+    # failureThreshold: 6
+
+devicemonitor:
+  enabled: true
+  podAnnotations: {}
+  automigrate: false
+  replicas: 1
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  affinity: {}
+  # image:
+  #   registry: ""
+  #   repository: ""
+  #   pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  nodeSelector: {}
+  service:
+    name: mender-devicemonitor
+    annotations: {}
+    type: ClusterIP
+    port: 8080
+  podSecurityContext:
+    enabled: false
+    runAsNonRoot: true
+    runAsUser: 65534
+  containerSecurityContext:
+    enabled: false
+    allowPrivilegeEscalation: false
+    runAsUser: 65534
+  hpa: {}
+  pdb: {}
+  priorityClassName: ""
+
+  ## Migration Job
+
+  ## devicemonitor.migrationRestartPolicy
+  # migrationRestartPolicy: "Never"
+
+  ## devicemonitor.migrationResources
+  ## K8s resources for the migration job
+  ## If not specified, default devicemonitor.resources applies
+  # migrationResources:
+  #   limits:
+  #     cpu: 150m
+  #     memory: 128Mi
+  #   requests:
+  #     cpu: 150m
+  #     memory: 64Mi
+
+  # custom envs
+  customEnvs: []
+  # - name: LOG_LEVEL
+  #   value: DEBUG
+
+  # deviceconnect.updateStrategy: Strategy to use to update existing pods
+  # Example:
+  # updateStrategy:
+  #   rollingUpdate:
+  #     maxSurge: 25%
+  #     maxUnavailable: 25%
+
+  # Override the properties of the Readiness, Liveness and Startup probes
+  probesOverrides:
+    {}
+    # timeoutSeconds: 2
+    # successThreshold: 2
+    # failureThreshold: 6
+
+# Redis as a subchart
+# Using a bitnami sub-chart by default = test usage only
+# It's recommended to use a suitable Redis Cluster for Production
+redis:
+  enabled: false
+  architecture: replication
+  commonAnnotations:
+    helm.sh/hook: "pre-install"
+    helm.sh/hook-weight: "-50"
+  auth:
+    enabled: false
+  commonConfiguration: |-
+    appendonly no
+    save ""
+    tcp-keepalive 0
+  master:
+    persistence:
+      enabled: false
+  replica:
+    persistence:
+      enabled: false
+  fullnameOverride: ""
+
+dbmigration:
+  enable: true
+  annotations: {}
+  backoffLimit: 5
+  affinity: {}
+  nodeSelector: {}
+  podSecurityContext:
+    enabled: false
+    runAsNonRoot: true
+    runAsUser: 999
+
+# Feature preview: Device License Count
+# Only available from version 3.6,
+# and available in Mender Enterprise
+# **WARNING**: This will be deprecated in the Helm Chart v7.0.0
+# and will be replaced by the `device_auth.cronjobs` feature.
+device_license_count:
+  enabled: true
+
+# Feature preview
+featureGates:
+  # Use K8s TLS Secret type for the API Gateway:
+  # tls.crt and tls.key replace cert.crt and private.key
+  # This affects api_gateway.certs when SSL is enabled
+  k8sTlsSecrets: false

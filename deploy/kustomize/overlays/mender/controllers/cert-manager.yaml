@@ -57,7 +57,7 @@ global:
 
   leaderElection:
     # Override the namespace used for the leader election lease.
-    namespace: "kube-system"
+    namespace: "cert-manager"
 
     # The duration that non-leader candidates will wait after observing a
     # leadership renewal until attempting to acquire leadership of a led but
@@ -154,7 +154,7 @@ image:
 
   # The container image for the cert-manager controller.
   # +docs:property
-  repository: quay.io/jetstack/cert-manager-controller
+  repository: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mender-cert-manager/controller
 
   # Override the image tag to deploy by setting this variable.
   # If no value is set, the chart's appVersion is used.
@@ -890,7 +890,7 @@ webhook:
 
     # The container image for the cert-manager webhook
     # +docs:property
-    repository: quay.io/jetstack/cert-manager-webhook
+    repository: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mender-cert-manager/webhook
 
     # Override the image tag to deploy by setting this variable.
     # If no value is set, the chart's appVersion will be used.
@@ -1199,7 +1199,7 @@ cainjector:
 
     # The container image for the cert-manager cainjector
     # +docs:property
-    repository: quay.io/jetstack/cert-manager-cainjector
+    repository: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mender-cert-manager/cainjector
 
     # Override the image tag to deploy by setting this variable.
     # If no value is set, the chart's appVersion will be used.
@@ -1258,7 +1258,7 @@ acmesolver:
 
     # The container image for the cert-manager acmesolver.
     # +docs:property
-    repository: quay.io/jetstack/cert-manager-acmesolver
+    repository: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mender-cert-manager/acmesolver
 
     # Override the image tag to deploy by setting this variable.
     # If no value is set, the chart's appVersion is used.
@@ -1391,7 +1391,7 @@ startupapicheck:
 
     # The container image for the cert-manager startupapicheck.
     # +docs:property
-    repository: quay.io/jetstack/cert-manager-startupapicheck
+    repository: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mender-cert-manager/startupapicheck
 
     # Override the image tag to deploy by setting this variable.
     # If no value is set, the chart's appVersion is used.
@@ -1419,7 +1419,7 @@ startupapicheck:
 
   serviceAccount:
     # Specifies whether a service account should be created.
-    create: true
+    create: false
 
     # The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template.

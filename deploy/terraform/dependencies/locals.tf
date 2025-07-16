@@ -20,7 +20,12 @@ locals {
     "mender-redis",
     "mender-nats",
     "docker-registry",
-    "mender-traefik"
+    "mender-traefik",
+    "bitnami/os-shell",
+    "bitnami/nginx",
+    "bitnami/mongodb-exporter",
+    "bitnami/mongodb",
+    "bitnami/kubectl"
   ]
 
   k8s_parameters = {

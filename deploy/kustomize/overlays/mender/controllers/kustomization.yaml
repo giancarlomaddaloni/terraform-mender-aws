@@ -4,7 +4,6 @@ kind: Kustomization
 
 resources: 
   - ../../../base/controllers/
-  - aws-login-config-map.yaml
 
 
 generatorOptions:

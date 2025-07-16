@@ -1,0 +1,169 @@
+{{- define "mender.workflowsPodTemplate" -}}
+metadata:
+  {{- with .dot.Values.workflows.podAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  labels:
+    {{- include "mender.labels" . | nindent 4 }}
+spec:
+  serviceAccountName: {{ include "mender.serviceAccountName" . }}
+  {{- with (coalesce .dot.Values.workflows.affinity .dot.Values.default.affinity) }}
+  affinity: {{ toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with (coalesce .dot.Values.workflows.tolerations .dot.Values.default.tolerations) }}
+  tolerations: {{ toYaml . | nindent 4 }}
+  {{- end }}
+  {{- if .dot.Values.workflows.podSecurityContext.enabled }}
+  securityContext: {{- omit .dot.Values.workflows.podSecurityContext "enabled" | toYaml | nindent 4 }}
+  {{- end }}
+
+  {{- with .restartPolicy }}
+  restartPolicy: {{ quote . }}
+  {{- end }}
+  containers:
+  - name: {{ ternary "workflows" "workflows-migration" (empty .migration) | quote }}
+    image: {{ include "mender.image" . }}
+    imagePullPolicy: {{ include "mender.imagePullPolicy" . }}
+    {{- if .dot.Values.workflows.containerSecurityContext.enabled }}
+    securityContext: {{- omit .dot.Values.workflows.containerSecurityContext "enabled" | toYaml | nindent 6 }}
+    {{- end }}
+
+    {{- with include "mender.resources" (list .dot.Values.default.resources .dot.Values.workflows.resources .extraResources )}}
+    resources: {{- nindent 6 . }}
+    {{- end }}
+
+    args:
+      {{- if .migration}}
+      - migrate
+      - --skip-nats
+      {{- else }}
+      {{- if  .worker }}
+      - worker
+      - --excluded-workflows
+      - generate_artifact
+      {{- else }}
+      - server
+      {{- end }}
+      {{- if .dot.Values.workflows.automigrate }}
+      - --automigrate
+      {{- end }}
+      {{- end }}
+
+    {{- if and (not .migration) (not .worker) }}
+    # Readiness/liveness probes
+    readinessProbe:
+      httpGet:
+        path: /api/v1/health
+        port: 8080
+      periodSeconds: 15
+      {{- with include "mender.probesOverrides" (dict "default" .dot.Values.default.probesOverrides "override" .dot.Values.workflows.probesOverrides ) }}
+      {{- nindent 6 . }}
+      {{- end }}
+    livenessProbe:
+      httpGet:
+        path: /status
+        port: 8080
+      periodSeconds: 5
+      {{- with include "mender.probesOverrides" (dict "default" .dot.Values.default.probesOverrides "override" .dot.Values.workflows.probesOverrides ) }}
+      {{- nindent 6 . }}
+      {{- end }}
+    startupProbe:
+      httpGet:
+        path: /status
+        port: 8080
+      failureThreshold: 36
+      periodSeconds: 5
+    {{- end }}
+
+    env:
+    # NATS uri
+    - name: AUDITLOGS_ADDR
+      value: {{ printf "%s:%v" .dot.Values.auditlogs.service.name .dot.Values.auditlogs.service.port }}
+    - name: DEPLOYMENTS_ADDR
+      value: {{ printf "%s:%v" .dot.Values.deployments.service.name .dot.Values.deployments.service.port }}
+    - name: DEVICEAUTH_ADDR
+      value: {{ printf "%s:%v" .dot.Values.device_auth.service.name .dot.Values.device_auth.service.port }}
+    - name: DEVICECONFIG_ADDR
+      value: {{ printf "%s:%v" .dot.Values.deviceconfig.service.name .dot.Values.deviceconfig.service.port }}
+    - name: DEVICECONNECT_ADDR
+      value: {{ printf "%s:%v" .dot.Values.deviceconnect.service.name .dot.Values.deviceconnect.service.port }}
+    - name: DEVICEMONITOR_ADDR
+      value: {{ printf "%s:%v" .dot.Values.devicemonitor.service.name .dot.Values.devicemonitor.service.port }}
+    - name: INVENTORY_ADDR
+      value: {{ printf "%s:%v" .dot.Values.inventory.service.name .dot.Values.inventory.service.port }}
+    - name: IOT_MANAGER_ADDR
+      value: {{ printf "%s:%v" .dot.Values.iot_manager.service.name .dot.Values.iot_manager.service.port }}
+    - name: TENANTADM_ADDR
+      value: {{ printf "%s:%v" .dot.Values.tenantadm.service.name .dot.Values.tenantadm.service.port }}
+    - name: USERADM_ADDR
+      value: {{ printf "%s:%v" .dot.Values.useradm.service.name .dot.Values.useradm.service.port }}
+    - name: WORKFLOWS_SERVER_ADDR
+      value: {{ printf "%s:%v" .dot.Values.workflows.service.name .dot.Values.workflows.service.port }}
+    - name: WORKFLOWS_NATS_URI
+    {{- if .dot.Values.global.nats.existingSecret }}
+      valueFrom:
+        secretKeyRef:
+          key: NATS_URI
+          name: {{ .dot.Values.global.nats.existingSecret }}
+    {{- else }}
+      value: {{ template "nats_uri" . }}
+    {{- end }}
+
+    {{- if .worker }}
+    - name: WORKFLOWS_MENDER_URL
+      value: "{{ .dot.Values.global.url }}"
+    {{- if and .dot.Values.auditlogs.enabled .dot.Values.global.enterprise }}
+    - name: HAVE_AUDITLOGS
+      value: "true"
+    {{- end }}
+    {{- if .dot.Values.deviceconnect.enabled }}
+    - name: HAVE_DEVICECONNECT
+      value: "true"
+    {{- end }}
+    {{- if .dot.Values.deviceconfig.enabled }}
+    - name: HAVE_DEVICECONFIG
+      value: "true"
+    {{- end }}
+    {{- end }}
+    {{- include "mender.customEnvs" (merge (deepCopy .dot.Values.workflows) (deepCopy (default (dict) .dot.Values.default))) | nindent 4 }}
+
+    # Supported configuration settings: https://github.com/mendersoftware/workflows/blob/master/config.yaml
+    # Set in order, last value for the key will be used in case duplications.
+    envFrom:
+    - prefix: WORKFLOWS_
+      secretRef:
+        name: {{ .dot.Values.global.mongodb.existingSecret | default (ternary "mongodb-common" "mongodb-common-prerelease" (empty .migration)) }}
+    {{- if .worker }}
+    - prefix: WORKFLOWS_
+      secretRef:
+        name: {{ .dot.Values.global.smtp.existingSecret | default "smtp" }}
+    {{- end }}
+
+    {{- with .dot.Values.workflows.mountSecrets }}
+    volumeMounts: {{ toYaml .volumeMounts | nindent 6 }}
+    {{- end }}
+
+  {{- if and .dot.Values.global.image .dot.Values.global.image.username }}
+  imagePullSecrets:
+  - name: {{ ternary "docker-registry" "docker-registry-prerelease" (empty .migration) }}
+  {{- else }}
+  {{- $ips := coalesce .dot.Values.workflows.imagePullSecrets .dot.Values.default.imagePullSecrets  }}
+  {{- if $ips }}
+  imagePullSecrets:
+  {{- toYaml $ips | nindent 4}}
+  {{- end }}
+  {{- end }}
+
+  {{- $pcn := coalesce .dot.Values.workflows.priorityClassName .dot.Values.global.priorityClassName -}}
+  {{- if $pcn }}
+  priorityClassName: {{ $pcn }}
+  {{- end }}
+
+  {{- with (coalesce .dot.Values.workflows.nodeSelector .dot.Values.default.nodeSelector) }}
+  nodeSelector: {{ toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .dot.Values.workflows.mountSecrets }}
+  volumes: {{ toYaml .volumes | nindent 4 }}
+  {{- end }}
+{{- end }}

@@ -1,0 +1,39 @@
+{{- if and .Values.auditlogs.enabled .Values.global.enterprise }}
+{{- $context := dict "dot" . "component" "auditlogs" "override" .Values.auditlogs -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "mender.fullname" . }}-auditlogs
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mender.labels" . | nindent 4 }}
+    app.kubernetes.io/name: {{ include "mender.fullname" . }}-auditlogs
+    app.kubernetes.io/component: auditlogs
+spec:
+  {{- if not (or .Values.auditlogs.hpa .Values.default.hpa ) }}
+  replicas: {{ .Values.auditlogs.replicas }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "mender.fullname" . }}-auditlogs
+
+  # if deployment is not completed within 10 min, consider it failed,
+  # as result deployment Reason=ProgressDeadlineExceeded
+  # needs to be big enough to rollout to complete
+  progressDeadlineSeconds: 600
+
+  # Rollout upgrade
+  {{- $updateStrategy := coalesce .Values.auditlogs.updateStrategy .Values.default.updateStrategy }}
+  {{- if $updateStrategy }}
+  strategy: {{- toYaml $updateStrategy | nindent 4 }}
+  {{- end }}
+
+  {{- $minReadySeconds := coalesce .Values.auditlogs.minReadySeconds .Values.default.minReadySeconds }}
+  {{- if $minReadySeconds }}
+  minReadySeconds: {{ $minReadySeconds }}
+  {{- end }}
+
+  template:
+    {{- include "mender.auditlogsPodTemplate" $context | nindent 4 }}
+
+{{- end }}

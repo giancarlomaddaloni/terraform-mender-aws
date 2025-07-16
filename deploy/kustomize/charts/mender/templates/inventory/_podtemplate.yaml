@@ -1,0 +1,143 @@
+{{- define "mender.inventoryPodTemplate" -}}
+{{- include "redis_conf_validation" . }}
+metadata:
+  {{- with .dot.Values.inventory.podAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  labels:
+    {{- include "mender.labels" . | nindent 4 }}
+spec:
+  serviceAccountName: {{ include "mender.serviceAccountName" . }}
+  {{- with (coalesce .dot.Values.inventory.affinity .dot.Values.default.affinity) }}
+  affinity: {{ toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with (coalesce .dot.Values.inventory.tolerations .dot.Values.default.tolerations) }}
+  tolerations: {{ toYaml . | nindent 4 }}
+  {{- end }}
+  {{- if .dot.Values.inventory.podSecurityContext.enabled }}
+  securityContext: {{- omit .dot.Values.inventory.podSecurityContext "enabled" | toYaml | nindent 4 }}
+  {{- end }}
+
+  {{- with .restartPolicy }}
+  restartPolicy: {{ quote . }}
+  {{- end }}
+  containers:
+  - name: {{ ternary "inventory" "inventory-migration" (empty .migration) | quote }}
+    image: {{ include "mender.image" . }}
+    imagePullPolicy: {{ include "mender.imagePullPolicy" . }}
+    {{- if .dot.Values.inventory.containerSecurityContext.enabled }}
+    securityContext: {{- omit .dot.Values.inventory.containerSecurityContext "enabled" | toYaml | nindent 6 }}
+    {{- end }}
+
+    {{- with include "mender.resources" (list .dot.Values.default.resources .dot.Values.inventory.resources .extraResources )}}
+    resources: {{- nindent 6 . }}
+    {{- end }}
+
+    {{- if (not .migration) }}
+    {{- if .dot.Values.inventory.automigrate }}
+    args: ["server", "--automigrate"]
+    {{- else }}
+    args: ["server"]
+    {{- end }}
+    {{- else }}
+    args: ["migrate"]
+    {{- end }}
+
+
+    {{- if (not .migration) }}
+    # Readiness/liveness probes
+    readinessProbe:
+      httpGet:
+        path: /api/internal/v1/inventory/health
+        port: 8080
+      periodSeconds: 15
+      {{- with include "mender.probesOverrides" (dict "default" .dot.Values.default.probesOverrides "override" .dot.Values.inventory.probesOverrides ) }}
+      {{- nindent 6 . }}
+      {{- end }}
+    livenessProbe:
+      httpGet:
+        path: /api/internal/v1/inventory/alive
+        port: 8080
+      periodSeconds: 5
+      {{- with include "mender.probesOverrides" (dict "default" .dot.Values.default.probesOverrides "override" .dot.Values.inventory.probesOverrides ) }}
+      {{- nindent 6 . }}
+      {{- end }}
+    startupProbe:
+      httpGet:
+        path: /api/internal/v1/inventory/alive
+        port: 8080
+      failureThreshold: 36
+      periodSeconds: 5
+    {{- end }}
+
+    env:
+    - name: INVENTORY_DEVICEMONITOR_ADDR
+      value: {{ printf "http://%s:%v" .dot.Values.devicemonitor.service.name .dot.Values.devicemonitor.service.port | quote }}
+    - name: INVENTORY_ORCHESTRATOR_ADDR
+      value: {{ printf "http://%s:%v" .dot.Values.workflows.service.name .dot.Values.workflows.service.port | quote }}
+    - name: INVENTORY_MIDDLEWARE
+      value: {{ .dot.Values.inventory.env.INVENTORY_MIDDLEWARE | quote }}
+    {{- if and .dot.Values.global.enterprise }}
+    {{- if not .dot.Values.global.redis.existingSecret }}
+    - name: INVENTORY_REDIS_CONNECTION_STRING
+      value: {{ include "redis_connection_string" . }}
+    - name: INVENTORY_REDIS_KEY_PREFIX
+      value: {{ .dot.Values.device_auth.env.INVENTORY_REDIS_KEY_PREFIX | default "inventory:v1" | quote }}
+    - name: INVENTORY_REDIS_CACHE_EXPIRE_SEC
+      value: {{ .dot.Values.useradm.env.INVENTORY_REDIS_CACHE_EXPIRE_SEC | default "1800" | quote }}
+    {{- end }}
+    {{- end }}
+    - name: INVENTORY_NATS_URI
+    {{- if .dot.Values.global.nats.existingSecret }}
+      valueFrom:
+        secretKeyRef:
+          key: NATS_URI
+          name: {{ .dot.Values.global.nats.existingSecret }}
+    {{- else }}
+      value: {{ template "nats_uri" . }}
+    {{- end }}
+    {{- include "mender.customEnvs" (merge (deepCopy .dot.Values.inventory) (deepCopy (default (dict) .dot.Values.default))) | nindent 4 }}
+
+    {{- /*
+    Supported configuration settings:
+      https://github.com/mendersoftware/inventory-enterprise/blob/master/config.yaml
+    Set in order, last value for the key will be used in case duplications.
+    */}}
+
+    envFrom:
+    - prefix: INVENTORY_
+      secretRef:
+      {{- if .dot.Values.inventory.mongodbExistingSecret }}
+        name: {{ .dot.Values.inventory.mongodbExistingSecret | default (ternary "mongodb-common" "mongodb-common-prerelease" (empty .migration)) }}
+      {{- else }}
+        name: {{ .dot.Values.global.mongodb.existingSecret | default (ternary "mongodb-common" "mongodb-common-prerelease" (empty .migration)) }}
+      {{- end }}
+
+    {{- if and .dot.Values.global.redis.existingSecret .dot.Values.global.enterprise ( not .dot.Values.global.redis.URL ) ( not .dot.Values.redis.enabled ) }}
+    # Redis existingSecret
+    - prefix: INVENTORY_
+      secretRef:
+        name: {{ .dot.Values.global.redis.existingSecret | quote }}
+    {{- end }}
+
+  {{- if and .dot.Values.global.image .dot.Values.global.image.username }}
+  imagePullSecrets:
+  - name: {{ ternary "docker-registry" "docker-registry-prerelease" (empty .migration) }}
+  {{- else }}
+  {{- $ips := coalesce .dot.Values.inventory.imagePullSecrets .dot.Values.default.imagePullSecrets  }}
+  {{- if $ips }}
+  imagePullSecrets:
+  {{- toYaml $ips | nindent 4}}
+  {{- end }}
+  {{- end }}
+
+  {{- $pcn := coalesce .dot.Values.inventory.priorityClassName .dot.Values.global.priorityClassName -}}
+  {{- if $pcn }}
+  priorityClassName: {{ $pcn }}
+  {{- end }}
+
+  {{- with (coalesce .dot.Values.inventory.nodeSelector .dot.Values.default.nodeSelector) }}
+  nodeSelector: {{ toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
