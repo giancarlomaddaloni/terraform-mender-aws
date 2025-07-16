@@ -37,7 +37,6 @@ jobs:
         {
           "natsio/nats-server-config-reloader": "${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/natsio/nats-server-config-reloader"
         }
-}
 
     steps:
       - name: Checkout
