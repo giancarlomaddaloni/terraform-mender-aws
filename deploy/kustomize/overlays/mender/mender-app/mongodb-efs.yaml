@@ -7,12 +7,14 @@ metadata:
 spec:
   storageClassName: efs-mender-sc
   capacity:
-    storage: 25Gi
+    storage: 8Gi
   accessModes:
     - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  volumeMode: Filesystem
   csi:
     driver: efs.csi.aws.com
-    volumeHandle: fs-0314c6b7168dd797e::fsap-08078f965ae97d39c
+    volumeHandle: fs-0314c6b7168dd797e::fsap-0df2b861c0e72ce87
     volumeAttributes:
       encryptInTransit: "false" 
 
@@ -31,5 +33,5 @@ spec:
   storageClassName: efs-mender-sc
   resources:
     requests:
-      storage: 25Gi
+      storage: 8Gi
   volumeName: efs-mongodb-pv

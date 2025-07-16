@@ -18,7 +18,10 @@ locals {
     "mender-cert-manager/webhook",
     "mender-mongodb",
     "mender-redis",
-    "mender-nats",
+    "nats",
+    "natsio/prometheus-nats-exporter",
+    "natsio/nats-server-config-reloader",
+    "natsio/nats-box",
     "docker-registry",
     "mender-traefik",
     "bitnami/os-shell",
@@ -27,6 +30,7 @@ locals {
     "bitnami/mongodb",
     "bitnami/kubectl"
   ]
+
 
   k8s_parameters = {
     cluster_name = "${local.project_name}-eks"

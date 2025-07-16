@@ -21,26 +21,7 @@ module "mender_eks" {
 
 
   access_entries = {
-    terraform = {
-      kubernetes_groups = [] 
-      principal_arn     = "arn:aws:sts::194722422560:federated-user/terraform"
-      policy_associations = {
-        namespace = {
-          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminPolicy"
-          access_scope = {
-            namespaces = local.k8s_parameters.namespace_access
-            type       = "namespace"
-          }
-        },
-        cluster = {
-          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-          access_scope = {
-            type       = "cluster"
-          }
-        }
-      }
-    },
-    mender_deploy = {
+    federated_mender_deploy = {
       kubernetes_groups = [] 
       principal_arn     = "arn:aws:sts::194722422560:federated-user/mender-deploy"
       policy_associations = {
@@ -59,9 +40,28 @@ module "mender_eks" {
         }
       }
     },
-    mender_user_deploy = {
+    mender_deploy = {
       kubernetes_groups = [] 
-      principal_arn     = "arn:aws:sts::194722422560:user/mender-deploy"
+      principal_arn     = "arn:aws:iam::194722422560:user/mender-deploy"
+      policy_associations = {
+        namespace = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminPolicy"
+          access_scope = {
+            namespaces = local.k8s_parameters.namespace_access
+            type       = "namespace"
+          }
+        },
+        cluster = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type       = "cluster"
+          }
+        }
+      }
+    },
+    federated_northerntech_team = {
+      kubernetes_groups = []
+      principal_arn     = "arn:aws:sts::194722422560:federated-user/northerntech-team"
       policy_associations = {
         namespace = {
           policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminPolicy"
@@ -80,7 +80,7 @@ module "mender_eks" {
     },
     northerntech_team = {
       kubernetes_groups = []
-      principal_arn     = "arn:aws:sts::194722422560:federated-user/northerntech-team"
+      principal_arn     = "arn:aws:iam::194722422560:user/northerntech-team"
       policy_associations = {
         namespace = {
           policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminPolicy"
@@ -125,6 +125,7 @@ module "mender_node_group" {
   cluster_version = local.k8s_parameters.version
 
   subnet_ids   = data.aws_subnets.private.ids
+  create_iam_role = false
 
   min_size     = local.k8s_parameters.min_size
   max_size     = local.k8s_parameters.max_size

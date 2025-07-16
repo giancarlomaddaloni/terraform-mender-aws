@@ -14,7 +14,7 @@
 ## @param global.namespaceOverride Override the namespace for resource deployed by the chart, but can itself be overridden by the local namespaceOverride
 ##
 global:
-  imageRegistry: ""
+  imageRegistry: "194722422560.dkr.ecr.us-east-1.amazonaws.com"
   ## E.g.
   ## imagePullSecrets:
   ##   - myRegistryKeySecretName
@@ -137,7 +137,6 @@ diagnosticMode:
 ## @param image.debug Set to true if you would like to see extra information on logs
 ##
 image:
-  registry: 194722422560.dkr.ecr.us-east-1.amazonaws.com
   repository: bitnami/mongodb
   tag: 8.0.11-debian-12-r0
   digest: ""
@@ -193,9 +192,9 @@ auth:
   ## @param auth.password DEPRECATED: use `auth.passwords` instead
   ## @param auth.database DEPRECATED: use `auth.databases` instead
   ##
-  username: ""
-  password: ""
-  database: ""
+  username: "mender"
+  password: "mendernt2025"
+  database: "mender"
   ## @param auth.replicaSetKey Key used for authentication in the replicaset (only when `architecture=replicaset`)
   ##
   replicaSetKey: ""
@@ -263,7 +262,6 @@ tls:
   ## @param tls.extraDnsNames Add extra dns names to the CA, can solve x509 auth issue for pod clients
   ##
   image:
-    registry: 194722422560.dkr.ecr.us-east-1.amazonaws.com
     repository: bitnami/nginx
     tag: 1.29.0-debian-12-r2
     digest: ""
@@ -855,7 +853,6 @@ externalAccess:
     ## @param externalAccess.autoDiscovery.image.pullSecrets Init container auto-discovery image pull secrets
     ##
     image:
-      registry: 194722422560.dkr.ecr.us-east-1.amazonaws.com
       repository: bitnami/kubectl
       tag: 1.33.2-debian-12-r3
       digest: ""
@@ -904,7 +901,6 @@ externalAccess:
     ## @param externalAccess.dnsCheck.image.pullSecrets Init container dns-check image pull secrets
     ##
     image:
-      registry: 194722422560.dkr.ecr.us-east-1.amazonaws.com
       repository: bitnami/os-shell
       tag: 12-debian-12-r47
       digest: ""
@@ -1311,7 +1307,7 @@ persistence:
   ## @param persistence.medium Provide a medium for `emptyDir` volumes.
   ## Requires persistence.enabled: false
   ##
-  medium: "efs-mongodb-pvc"
+  medium: ""
   ## @param persistence.existingClaim Provide an existing `PersistentVolumeClaim` (only when `architecture=standalone`)
   ## Requires persistence.enabled: true
   ## If defined, PVC must be created manually before volume will be bound
@@ -1320,7 +1316,7 @@ persistence:
   existingClaim: "efs-mongodb-pvc"
   ## @param persistence.resourcePolicy Setting it to "keep" to avoid removing PVCs during a helm delete operation. Leaving it empty will delete PVCs after the chart deleted
   ##
-  resourcePolicy: ""
+  resourcePolicy: "efs-mender"
   ## @param persistence.storageClass PVC Storage Class for MongoDB(&reg;) data volume
   ## If defined, storageClassName: <storageClass>
   ## If set to "-", storageClassName: "", which disables dynamic provisioning
@@ -1331,7 +1327,7 @@ persistence:
   ## @param persistence.accessModes PV Access Mode
   ##
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   ## @param persistence.size PVC Storage Request for MongoDB(&reg;) data volume
   ##
   size: 8Gi
@@ -1344,7 +1340,7 @@ persistence:
   ## @param persistence.mountPath Path to mount the volume at
   ## MongoDB(&reg;) images.
   ##
-  mountPath: /data/mongo/db/bitnami/mongodb
+  mountPath: /bitnami/mongodb
   ## @param persistence.subPath Subdirectory of the volume to mount at
   ## and one PV for multiple services.
   ##
@@ -1633,7 +1629,6 @@ volumePermissions:
   ## @param volumePermissions.image.pullSecrets Specify docker-registry secret names as an array
   ##
   image:
-    registry: 194722422560.dkr.ecr.us-east-1.amazonaws.com
     repository: bitnami/os-shell
     tag: 12-debian-12-r47
     digest: ""
@@ -2434,7 +2429,6 @@ metrics:
   ## @param metrics.image.pullSecrets Specify docker-registry secret names as an array
   ##
   image:
-    registry: 194722422560.dkr.ecr.us-east-1.amazonaws.com
     repository: bitnami/mongodb-exporter
     tag: 0.45.0-debian-12-r4
     digest: ""

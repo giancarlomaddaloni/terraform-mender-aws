@@ -150,7 +150,7 @@ module "mender_efs_role" {
   oidc_providers = {
     ex = {
       provider_arn               = module.mender_eks.oidc_provider_arn
-      namespace_service_accounts = ["kube-system:efs-sa", "mender:efs-sa"]
+      namespace_service_accounts = ["kube-system:efs-sa", "mender:efs-sa", "mender:mongodb"]
     }
   }
 }
