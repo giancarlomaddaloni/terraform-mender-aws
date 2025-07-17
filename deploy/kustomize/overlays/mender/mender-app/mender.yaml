@@ -986,7 +986,7 @@ create_artifact_worker:
   affinity: {}
   image:
     repository: "mendersoftware"
-    tag: "v4.0.0"
+    tag: "v4.0.1"
     
   imagePullSecrets: []
   resources:

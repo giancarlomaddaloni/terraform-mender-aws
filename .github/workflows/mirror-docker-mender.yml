@@ -49,7 +49,7 @@ jobs:
       MENDER_CREATE_WORKER: "v4.0.1"
       MENDER_CREATE_WORKER_ECR_MAP: |
         {
-          "docker.io/mendersoftware/create-artifact-worker": "${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/mendersoftware/mendersoftware/create-artifact-worker"
+          "docker.io/mendersoftware/create-artifact-worker": "${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/mendersoftware/create-artifact-worker"
         }
 
       MENDER_DEVICE_CONFIG: "v4.0.1"
