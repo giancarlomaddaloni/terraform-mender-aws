@@ -3,11 +3,14 @@ metadata:
   name: {{ .name }}
 spec:
   accessModes:
-  - ReadWriteOnce
+    - ReadWriteOnce
   resources:
     requests:
       storage: {{ .size | quote }}
   {{- with .storageClassName }}
   storageClassName: {{ . | quote }}
+  {{- end }}
+  {{- with .volumeName }}
+  volumeName: {{ . | quote }}
   {{- end }}
 {{- end }}

@@ -49,7 +49,7 @@ module "mender_efs" {
     },
     mender_redis = {
       root_directory = {
-        path = "/data/redis/db"
+        path = "/data"
         creation_info = {
           owner_gid   = 1001
           owner_uid   = 1001
@@ -60,16 +60,6 @@ module "mender_efs" {
     mender_mongo = {
       root_directory = {
         path = "/bitnami/mongodb"
-        creation_info = {
-          owner_gid   = 1001
-          owner_uid   = 1001
-          permissions = "755"
-        }
-      }
-    },
-    mender_nats_resolver = {
-      root_directory = {
-        path = "/data/resolver"
         creation_info = {
           owner_gid   = 1001
           owner_uid   = 1001

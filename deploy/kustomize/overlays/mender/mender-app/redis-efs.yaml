@@ -1,0 +1,56 @@
+--- ## Mender NATS Resolver EFS ## ----
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: efs-redis-pv 
+spec:
+  storageClassName: efs-mender-sc
+  capacity:
+    storage: 16Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  volumeMode: Filesystem
+  csi:
+    driver: efs.csi.aws.com
+    volumeHandle: fs-0314c6b7168dd797e::fsap-0d562df692c81d20c
+    volumeAttributes:
+      encryptInTransit: "false" 
+
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: efs-redis-replica-pvc
+  namespace: mender
+  annotations: 
+    volume.beta.kubernetes.io/storage-class: "efs-mender-sc"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: efs-mender-sc
+  resources:
+    requests:
+      storage: 8Gi
+  volumeName: efs-redis-pv
+
+
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: efs-redis-master-pvc
+  namespace: mender
+  annotations: 
+    volume.beta.kubernetes.io/storage-class: "efs-mender-sc"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: efs-mender-sc
+  resources:
+    requests:
+      storage: 8Gi
+  volumeName: efs-redis-pv

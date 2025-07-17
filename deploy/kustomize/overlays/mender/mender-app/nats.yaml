@@ -12,7 +12,7 @@ global:
     pullSecretNames: []
     # global registry to use for all container images in the chart
     # can be overridden by individual image registry
-    registry:
+    registry: "194722422560.dkr.ecr.us-east-1.amazonaws.com"
 
   # global labels will be applied to all resources deployed by the chart
   labels: {}
@@ -25,7 +25,7 @@ nameOverride:
 # override full name of the chart+release
 fullnameOverride:
 # override the namespace that resources are installed into
-namespaceOverride:
+namespaceOverride: mender
 
 # reference a common CA Certificate or Bundle in all nats config `tls` blocks and nats-box contexts
 # note: `tls.verify` still must be set in the appropriate nats config `tls` blocks to require mTLS
@@ -82,7 +82,7 @@ config:
     patch: []
 
   jetstream:
-    enabled: false
+    enabled: true
 
     fileStore:
       enabled: true
@@ -95,13 +95,15 @@ config:
         enabled: true
         size: 10Gi
         storageClassName: efs-mender-sc
+        volumeName: efs-nats-data-pv
+        name: efs-nats-data-pvc
+
 
         # merge or patch the jetstream pvc
         # https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#persistentvolumeclaim-v1-core
         merge: {}
         patch: []
         # defaults to "{{ include "nats.fullname" $ }}-js"
-        name: efs-nats-data-pvc
 
       # defaults to the PVC size
       maxSize:
@@ -246,8 +248,10 @@ config:
     port: 65432
 
   resolver:
-    enabled: true
-    dir: /data/resolver
+    enabled: false
+    dir: "/data/resolver"
+    type: "cache"
+
 
     ############################################################
     # stateful set -> volume claim templates -> resolver pvc
@@ -256,13 +260,14 @@ config:
       enabled: true
       size: 1Gi
       storageClassName: efs-mender-sc
+      volumeName: efs-nats-resolver-pv
+      name: efs-nats-resolver-pvc
 
       # merge or patch the pvc
       # https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#persistentvolumeclaim-v1-core
       merge: {}
       patch: []
       # defaults to "{{ include "nats.fullname" $ }}-resolver"
-      name: efs-nats-resolver-pvc
 
     # merge or patch the resolver
     # https://docs.nats.io/running-a-nats-service/configuration/securing_nats/auth_intro/jwt/resolver
@@ -407,7 +412,7 @@ promExporter:
   # prometheus pod monitor
   ############################################################
   podMonitor:
-    enabled: false
+    enabled: true
 
     # merge or patch the pod monitor
     # https://prometheus-operator.dev/docs/api-reference/api/#monitoring.coreos.com/v1.PodMonitor
@@ -436,13 +441,13 @@ service:
     mqtt:
       enabled: true
     cluster:
-      enabled: false
+      enabled: true
     gateway:
-      enabled: false
+      enabled: true
     monitor:
-      enabled: false
+      enabled: true
     profiling:
-      enabled: false
+      enabled: true
 
   # merge or patch the service
   # https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#service-v1-core
@@ -514,13 +519,14 @@ podDisruptionBudget:
 
 # service account
 serviceAccount:
-  enabled: false
+  namespace: "mender"
+  enabled: true
   # merge or patch the service account
   # https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#serviceaccount-v1-core
   merge: {}
   patch: []
   # defaults to "{{ include "nats.fullname" $ }}"
-  name:
+  name: 
 
 ############################################################
 # natsBox
@@ -628,7 +634,8 @@ natsBox:
 
   # service account
   serviceAccount:
-    enabled: false
+    namespace: "mender"
+    enabled: true
     # merge or patch the service account
     # https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#serviceaccount-v1-core
     merge: {}

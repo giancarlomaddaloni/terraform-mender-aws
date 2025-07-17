@@ -19,22 +19,22 @@ spec:
       encryptInTransit: "false" 
 
 
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: efs-nats-resolver-pvc
-  namespace: mender
-  annotations: 
-    volume.beta.kubernetes.io/storage-class: "efs-mender-sc"
-spec:
-  accessModes:
-    - ReadWriteMany
-  storageClassName: efs-mender-sc
-  resources:
-    requests:
-      storage: 1Gi
-  volumeName: efs-nats-resolver-pv
+# ---
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#   name: efs-nats-resolver-pvc
+#   namespace: mender
+#   annotations: 
+#     volume.beta.kubernetes.io/storage-class: "efs-mender-sc"
+# spec:
+#   accessModes:
+#     - ReadWriteMany
+#   storageClassName: efs-mender-sc
+#   resources:
+#     requests:
+#       storage: 1Gi
+#   volumeName: efs-nats-resolver-pv
 
 --- ## Mender NATS Data EFS ## ----
 
@@ -47,7 +47,7 @@ spec:
   capacity:
     storage: 10Gi
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
   csi:
@@ -57,19 +57,19 @@ spec:
       encryptInTransit: "false" 
 
 
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: efs-nats-data--pvc
-  namespace: mender
-  annotations: 
-    volume.beta.kubernetes.io/storage-class: "efs-mender-sc"
-spec:
-  accessModes:
-    - ReadWriteMany
-  storageClassName: efs-mender-sc
-  resources:
-    requests:
-      storage: 10Gi
-  volumeName: efs-nats-data-pv
+# ---
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#   name: efs-nats-data-pvc
+#   namespace: mender
+#   annotations: 
+#     volume.beta.kubernetes.io/storage-class: "efs-mender-sc"
+# spec:
+#   accessModes:
+#     - ReadWriteMany
+#   storageClassName: efs-mender-sc
+#   resources:
+#     requests:
+#       storage: 10Gi
+#   volumeName: efs-nats-data-pv

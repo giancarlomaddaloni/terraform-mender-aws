@@ -48,7 +48,7 @@ nameOverride: ""
 fullnameOverride: ""
 ## @param namespaceOverride String to fully override common.names.namespace
 ##
-namespaceOverride: ""
+namespaceOverride: "mender"
 ## @param kubeVersion Force target Kubernetes version (using Helm capabilities if not set)
 ##
 kubeVersion: ""
@@ -476,7 +476,7 @@ replicaCount: 2
 ## ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy
 ## Example:
 ## updateStrategy:
-##  type: RollingUpdate
+##  type: RollingUpdatekub
 ##  rollingUpdate:
 ##    maxSurge: 25%
 ##    maxUnavailable: 25%
@@ -2606,7 +2606,7 @@ metrics:
     enabled: false
     ## @param metrics.serviceMonitor.namespace Namespace which Prometheus is running in
     ##
-    namespace: ""
+    namespace: "mender"
     ## @param metrics.serviceMonitor.interval Interval at which metrics should be scraped
     ##
     interval: 30s
@@ -2647,7 +2647,7 @@ metrics:
     additionalLabels: {}
     ## @param metrics.prometheusRule.namespace Namespace where prometheusRules resource should be created
     ##
-    namespace: ""
+    namespace: "mender"
     ## @param metrics.prometheusRule.rules Rules to be created, check values for an example
     ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#rulegroup
     ##      https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/

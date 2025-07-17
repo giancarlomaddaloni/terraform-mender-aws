@@ -18,6 +18,7 @@ kind: Pod
 {{- $_ := set . "merge" (dict
   "metadata" (dict
     "name" (printf "%s-test-request-reply" $.Values.statefulSet.name)
+    "namespace" $.Release.Namespace
     "labels" (dict
       "app.kubernetes.io/component" "test-request-reply"
     )

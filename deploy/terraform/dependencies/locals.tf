@@ -28,7 +28,9 @@ locals {
     "bitnami/nginx",
     "bitnami/mongodb-exporter",
     "bitnami/mongodb",
-    "bitnami/kubectl"
+    "bitnami/kubectl",
+    "bitnami/redis-exporter",
+    "bitnami/redis-sentinel"
   ]
 
 
