@@ -37,16 +37,6 @@ module "mender_efs" {
 
   # Access point(s)
   access_points = {
-    docker_registry = {
-      root_directory = {
-        path = "/data/docker"
-        creation_info = {
-          owner_gid   = 1001
-          owner_uid   = 1001
-          permissions = "755"
-        }
-      }
-    },
     mender_redis_replica = {
       root_directory = {
         path = "/data"

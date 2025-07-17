@@ -5,7 +5,7 @@ global:
 
   enterprise: false
   hosted: false
-  auditlogs: true
+  auditlogs: false
   priorityClassName: ""
   
   
@@ -55,11 +55,12 @@ default:
   # If true:  registry.mender.io/mender-server-enterprise
   # If false: docker.io/mendersoftware
   # The tag defaults to the chart version.
-  image: {}
-    registry: docker.io
-    repository: mendersoftware
-    tag: v4.0.1
-    pullPolicy: IfNotPresent
+  image:
+    registry: "194722422560.dkr.ecr.us-east-1.amazonaws.com"
+    # registry: docker.io
+    # repository: mendersoftware
+    # tag: v4.0.1
+    # pullPolicy: IfNotPresent
 
   # HorizontalPodAutoscaler default resources
   hpa: {}
@@ -334,10 +335,10 @@ deployments:
     jitter: "3s"
     skipVerify: false
   daemonSchedule: "15 * * * *"
-  # image:
-  #   registry: ""
-  #   repository: ""
-  #   pullPolicy: IfNotPresent
+  image:
+    repository: "mendersoftware"
+    version: "v4.0.1"
+    pullPolicy: IfNotPresent
   imagePullSecrets: []
   nodeSelector: {}
   service:
@@ -416,10 +417,10 @@ device_auth:
       cpu: 350m
       memory: 128Mi
   affinity: {}
-  # image:
-  #   registry: ""
-  #   repository: ""
-  #   pullPolicy: IfNotPresent
+  image:
+    repository: "mendersoftware"
+    version: "v4.0.1"
+    pullPolicy: IfNotPresent
   imagePullSecrets: []
   nodeSelector: {}
   service:
@@ -529,7 +530,7 @@ generate_delta_worker:
   persistence:
     # enabled adds pvc templates to the StatefulSet definition.
     # If disabled, the service will use ephermeral storage.
-    enabled: true
+    enabled: false
     accessModes: ["ReadWriteOnce"]
     size: "40Gi"
     storageClass: ""
@@ -580,8 +581,8 @@ gui:
       memory: 16Mi
   affinity: {}
   image:
-    repository: "mendersoftware/gui"
-    tag: "v4.0.0"
+    repository: "mendersoftware"
+    tag: "v4.0.1"
     pullPolicy: IfNotPresent
   imagePullSecrets: []
   nodeSelector: {}
@@ -639,8 +640,8 @@ inventory:
       memory: 128Mi
   affinity: {}
   image:
-    repository: "mendersoftware/inventory"
-    tag: "v4.0.0"
+    repository: "mendersoftware"
+    tag: "v4.0.1"
     pullPolicy: IfNotPresent
   imagePullSecrets: []
   nodeSelector: {}
@@ -699,7 +700,7 @@ inventory:
     # failureThreshold: 6
 
 tenantadm:
-  enabled: true
+  enabled: false
   podAnnotations: {}
   replicas: 1
   resources:
@@ -825,8 +826,8 @@ useradm:
       memory: 64Mi
   affinity: {}
   image:
-    repository: "mendersoftware/useradm"
-    tag: "v4.0.0"
+    repository: "mendersoftware"
+    tag: "v4.0.1"
     pullPolicy: IfNotPresent
   imagePullSecrets: []
   nodeSelector: {}
@@ -911,8 +912,8 @@ workflows:
       memory: 64Mi
   affinity: {}
   image:
-    repository: "mendersoftware/workflows"
-    tag: "v4.0.0"
+    repository: "mendersoftware"
+    tag: "v4.0.1"
     pullPolicy: IfNotPresent
   imagePullSecrets: []
   nodeSelector: {}
@@ -994,8 +995,8 @@ create_artifact_worker:
       memory: 128Mi
   affinity: {}
   image:
-    repository: "mendersoftware/create-artifact-worker"
-    tag: "v4.0.0"
+    repository: "mendersoftware"
+    tag: "v4.0.1"
     pullPolicy: IfNotPresent
   imagePullSecrets: []
   nodeSelector: {}
@@ -1022,7 +1023,7 @@ create_artifact_worker:
   #     maxUnavailable: 25%
 
 auditlogs:
-  enabled: true
+  enabled: false
   podAnnotations: {}
   automigrate: false
   # logRetentionSeconds gives the number of seconds before
@@ -1110,8 +1111,8 @@ iot_manager:
       memory: 128Mi
   affinity: {}
   image:
-    repository: "mendersoftware/iot-manager"
-    tag: "v4.0.0"
+    repository: "mendersoftware"
+    tag: "v4.0.1"
     pullPolicy: IfNotPresent
   imagePullSecrets: []
   nodeSelector: {}
@@ -1221,8 +1222,8 @@ deviceconnect:
       memory: 128Mi
   affinity: {}
   image:
-    repository: "mendersoftware/deviceconnect"
-    tag: "v4.0.0"
+    repository: "mendersoftware"
+    tag: "v4.0.1"
     pullPolicy: IfNotPresent
   imagePullSecrets: []
   nodeSelector: {}
@@ -1294,8 +1295,8 @@ deviceconfig:
       memory: 128Mi
   affinity: {}
   image:
-    repository: "mendersoftware/deviceconfig"
-    tag: "v4.0.0"
+    repository: "mendersoftware"
+    tag: "v4.0.1"
     pullPolicy: IfNotPresent
   imagePullSecrets: []
   nodeSelector: {}
@@ -1470,9 +1471,3 @@ featureGates:
   # tls.crt and tls.key replace cert.crt and private.key
   # This affects api_gateway.certs when SSL is enabled
   k8sTlsSecrets: false
-
-
-
-"mendersoftware/deviceauth",
-"mendersoftware/deployments",
-"traefik"

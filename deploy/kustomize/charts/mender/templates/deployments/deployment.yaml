@@ -23,9 +23,15 @@ spec:
   progressDeadlineSeconds: 600
 
   # Rollout upgrade
-  {{- $updateStrategy := coalesce .Values.deployments.updateStrategy .Values.default.updateStrategy }}
-  {{- if $updateStrategy }}
-  strategy: {{- toYaml $updateStrategy | nindent 4 }}
+  # {{- $updateStrategy := coalesce .Values.deployments.updateStrategy .Values.default.updateStrategy }}
+  # {{- if $updateStrategy }}
+  # strategy: {{- toYaml $updateStrategy | nindent 4 }}
+  # {{- end }}
+  # Rollout upgrade
+  {{- $update := coalesce .Values.deployments.updateStrategy .Values.default.updateStrategy -}}
+  {{- if $update }}
+  strategy:
+  {{ toYaml $update | indent 2 }}
   {{- end }}
 
   {{- $minReadySeconds := coalesce .Values.deployments.minReadySeconds .Values.default.minReadySeconds }}

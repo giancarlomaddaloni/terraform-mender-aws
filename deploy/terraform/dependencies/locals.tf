@@ -41,6 +41,7 @@ locals {
     "mendersoftware/deviceauth",
     "mendersoftware/deployments",
     "mendersoftware/create-artifact-worker",
+    "mendersoftware/mender-client-docker-addons",
     "mendersoftware/gui",
     "traefik"
   ]

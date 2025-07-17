@@ -7,7 +7,9 @@ resources:
   - nats-efs.yaml
   - redis-efs.yaml
   - mongodb-secret.yaml
-  - issuer-letsencrypt
+  - redis-secret.yaml
+  - nats-secret.yaml
+
 
 
 
@@ -41,3 +43,9 @@ helmCharts:
   version: ~17.11.2
 
 
+- name: mender
+  releaseName: mender
+  namespace: mender
+  valuesFile: ./mender.yaml
+  includeCRDs: true
+  version: v4.0.1
