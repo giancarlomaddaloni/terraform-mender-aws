@@ -1,20 +1,20 @@
---- ## Mender NATS Resolver EFS ## ----
+--- ## Mender REDIS Replica EFS ## ----
 
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: efs-redis-pv 
+  name: efs-redis-replica-pv 
 spec:
   storageClassName: efs-mender-sc
   capacity:
-    storage: 16Gi
+    storage: 8Gi
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
   csi:
     driver: efs.csi.aws.com
-    volumeHandle: fs-0314c6b7168dd797e::fsap-0d562df692c81d20c
+    volumeHandle: fs-0314c6b7168dd797e::fsap-03442cc0a9c633eaf
     volumeAttributes:
       encryptInTransit: "false" 
 
@@ -34,9 +34,30 @@ spec:
   resources:
     requests:
       storage: 8Gi
-  volumeName: efs-redis-pv
+  volumeName: efs-redis-replica-pv
 
 
+
+
+--- ## Mender REDIS Master EFS ## ----
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: efs-redis-master-pv 
+spec:
+  storageClassName: efs-mender-sc
+  capacity:
+    storage: 8Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  volumeMode: Filesystem
+  csi:
+    driver: efs.csi.aws.com
+    volumeHandle: fs-0314c6b7168dd797e::fsap-0dccf71ca4f043d05
+    volumeAttributes:
+      encryptInTransit: "false" 
 
 ---
 apiVersion: v1
@@ -53,4 +74,4 @@ spec:
   resources:
     requests:
       storage: 8Gi
-  volumeName: efs-redis-pv
+  volumeName: efs-redis-master-pv

@@ -21,13 +21,14 @@ helmCharts:
   namespace: mender
   valuesFile: ./mongodb.yaml
   includeCRDs: true
-  version: v1.18.2
+  version: ~14.13.0
 
 - name: nats
   releaseName: nats
   namespace: mender
   valuesFile: ./nats.yaml
   includeCRDs: true
+  version: ~0.19.17
 
 
 - name: redis
@@ -35,3 +36,6 @@ helmCharts:
   namespace: mender
   valuesFile: ./redis.yaml
   includeCRDs: true
+  version: ~17.11.2
+
+

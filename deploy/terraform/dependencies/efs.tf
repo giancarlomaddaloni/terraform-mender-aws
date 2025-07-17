@@ -47,7 +47,17 @@ module "mender_efs" {
         }
       }
     },
-    mender_redis = {
+    mender_redis_replica = {
+      root_directory = {
+        path = "/data"
+        creation_info = {
+          owner_gid   = 1001
+          owner_uid   = 1001
+          permissions = "755"
+        }
+      }
+    },
+    mender_redis_master = {
       root_directory = {
         path = "/data"
         creation_info = {

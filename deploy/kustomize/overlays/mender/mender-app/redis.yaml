@@ -21,12 +21,12 @@ global:
   ##
   imagePullSecrets: []
   defaultStorageClass: ""
-  storageClass: ""
+  storageClass: "efs-mender-sc"
   ## Security parameters
   ##
   security:
     ## @param global.security.allowInsecureImages Allows skipping image verification
-    allowInsecureImages: false
+    allowInsecureImages: true
   redis:
     password: ""
   ## Compatibility adaptations for Kubernetes platforms
@@ -52,7 +52,7 @@ nameOverride: ""
 fullnameOverride: ""
 ## @param namespaceOverride String to fully override common.names.namespace
 ##
-namespaceOverride: ""
+namespaceOverride: "mender"
 ## @param commonLabels Labels to add to all deployed objects
 ##
 commonLabels: {}
@@ -143,10 +143,10 @@ architecture: replication
 auth:
   ## @param auth.enabled Enable password authentication
   ##
-  enabled: true
+  enabled: false
   ## @param auth.sentinel Enable authentication on sentinels too
   ##
-  sentinel: true
+  sentinel: false
   ## @param auth.password Redis(R) password
   ## Defaults to a random 10-character alphanumeric string if not set
   ##
@@ -193,7 +193,7 @@ auth:
 ##
 commonConfiguration: |-
   # Enable AOF https://redis.io/topics/persistence#append-only-file
-  appendonly yes
+  appendonly no
   # Disable RDB persistence, AOF persistence already enabled.
   save ""
 ## @param existingConfigmap The name of an existing ConfigMap with your custom configuration for Redis(R) nodes
@@ -1978,10 +1978,10 @@ metrics:
     port: http-metrics
     ## @param metrics.serviceMonitor.enabled Create ServiceMonitor resource(s) for scraping metrics using PrometheusOperator
     ##
-    enabled: false
+    enabled: true
     ## @param metrics.serviceMonitor.namespace The namespace in which the ServiceMonitor will be created
     ##
-    namespace: ""
+    namespace: "mender"
     ## @param metrics.serviceMonitor.tlsConfig [object] TLS configuration used for scrape endpoints used by Prometheus
     ##
     tlsConfig: {}
@@ -2038,10 +2038,10 @@ metrics:
     port: metrics
     ## @param metrics.podMonitor.enabled Create PodMonitor resource(s) for scraping metrics using PrometheusOperator
     ##
-    enabled: false
+    enabled: true
     ## @param metrics.podMonitor.namespace The namespace in which the PodMonitor will be created
     ##
-    namespace: ""
+    namespace: "mender"
     ## @param metrics.podMonitor.tlsConfig [object] TLS configuration used for scrape endpoints used by Prometheus
     ##
     tlsConfig: {}
@@ -2094,10 +2094,10 @@ metrics:
   prometheusRule:
     ## @param metrics.prometheusRule.enabled Create a custom prometheusRule Resource for scraping metrics using PrometheusOperator
     ##
-    enabled: false
+    enabled: true
     ## @param metrics.prometheusRule.namespace The namespace in which the prometheusRule will be created
     ##
-    namespace: ""
+    namespace: "mender"
     ## @param metrics.prometheusRule.additionalLabels Additional labels for the prometheusRule
     ##
     additionalLabels: {}

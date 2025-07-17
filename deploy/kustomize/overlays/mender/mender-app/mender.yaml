@@ -1,10 +1,13 @@
 fullnameOverride: ""
 
 global:
+  imageRegistry: "194722422560.dkr.ecr.us-east-1.amazonaws.com"
+
   enterprise: false
   hosted: false
   auditlogs: true
   priorityClassName: ""
+  
   mongodb:
     existingSecret: ""
     URL: ""
@@ -57,10 +60,10 @@ default:
   # If false: docker.io/mendersoftware
   # The tag defaults to the chart version.
   image: {}
-  #   registry: docker.io|registry.mender.io
-  #   repository: mendersoftware|mender-server-enterprise
-  #   tag: {{ .Chart.AppVersion }}
-  #   pullPolicy: IfNotPresent
+    registry: docker.io
+    repository: mendersoftware
+    tag: v4.0.1
+    pullPolicy: IfNotPresent
 
   # HorizontalPodAutoscaler default resources
   hpa: {}
@@ -137,13 +140,13 @@ ingress:
   #     serviceName: ssl-redirect
   #     servicePort: use-annotation
   hosts:
-    - mender.example.com
+    - mender.gmaddaloni.com
   tls:
     # this secret must exists or can be created from a working cert-manager
     # instance
     - secretName: mender-ingress-tls
       hosts:
-        - mender.example.com
+        - mender.gmaddaloni.com
 
 # Helm chart smoke tests
 tests:
@@ -216,7 +219,6 @@ api_gateway:
   podAnnotations: {}
   dashboard: false
   image:
-    registry: docker.io
     repository: traefik
     tag: 3.4.3
     imagePullPolicy: IfNotPresent
