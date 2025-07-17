@@ -59,12 +59,16 @@ spec:
       - name: create-artifact-worker
         image: {{ include "mender.image" $context }}
         imagePullPolicy: {{ include "mender.imagePullPolicy" $context }}
-{{- if .Values.create_artifact_worker.containerSecurityContext.enabled }}
-        securityContext: {{- omit .Values.create_artifact_worker.containerSecurityContext "enabled" | toYaml | nindent 10 }}
-{{- end }}
+# {{- if .Values.create_artifact_worker.containerSecurityContext.enabled }}
+#         securityContext: {{- omit .Values.create_artifact_worker.containerSecurityContext "enabled" | toYaml | nindent 10 }}
+# {{- end }}
         resources:
-{{ toYaml .Values.create_artifact_worker.resources | indent 10 }}
-
+          limits:
+            cpu: 100m
+            memory: 1024Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
 {{- if .Values.create_artifact_worker.automigrate }}
         command: ["workflows", "--config", "/etc/workflows/config.yaml", "worker", "--automigrate"]
 {{- else }}
@@ -79,7 +83,6 @@ spec:
         - name: WORKFLOWS_NATS_URI
           value: {{ template "nats_uri" . }}
         {{- end }}
-
         - name: WORKFLOWS_MENDER_URL
           value: "{{ .Values.global.url }}"
         - name: CREATE_ARTIFACT_GATEWAY_URL
@@ -90,10 +93,15 @@ spec:
           value: http://{{ .Values.deployments.service.name }}:{{ .Values.deployments.service.port }}
         {{- include "mender.customEnvs" (merge (deepCopy .Values.create_artifact_worker) (deepCopy (default (dict) .Values.default))) | nindent 8 }}
         envFrom:
+        {{- if .Values.global.mongodb.existingSecret }}
         - prefix: WORKFLOWS_
           secretRef:
-            name: {{ .Values.global.mongodb.existingSecret | default "mongodb-common" }}
-
+            name: {{ .Values.global.mongodb.existingSecret }}
+        {{- else }}
+        - prefix: WORKFLOWS_
+          secretRef:
+            name: mongodb-common
+        {{- end }}
         {{- if .Values.global.nats.existingSecret }}
         - prefix: WORKFLOWS_
           secretRef:

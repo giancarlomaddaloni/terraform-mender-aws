@@ -22,11 +22,7 @@ spec:
   # needs to be big enough to rollout to complete
   progressDeadlineSeconds: 600
 
-  # Rollout upgrade
-  # {{- $updateStrategy := coalesce .Values.deployments.updateStrategy .Values.default.updateStrategy }}
-  # {{- if $updateStrategy }}
-  # strategy: {{- toYaml $updateStrategy | nindent 4 }}
-  # {{- end }}
+
   # Rollout upgrade
   {{- $update := coalesce .Values.deployments.updateStrategy .Values.default.updateStrategy -}}
   {{- if $update }}

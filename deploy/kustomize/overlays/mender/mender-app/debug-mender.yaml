@@ -1,714 +1,78 @@
 ---
-# Source: mender/templates/secrets/secret-mongodb-common-prerelease.yaml
+# Source: mender/templates/device-auth/secret.yaml
 apiVersion: v1
 kind: Secret
 metadata:
-  name:  mongodb-common-prerelease
+  name: rsa-device-auth
   namespace: mender
   labels:
-    app.kubernetes.io/name: mongodb-common
+    app.kubernetes.io/name: rsa-device-auth
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/instance: mender
+    app.kubernetes.io/component: device-auth
+    app.kubernetes.io/part-of: mender
+    helm.sh/chart: "mender"
+data:
+  private.pem: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1DNENBUUF3QlFZREsyVndCQ0lFSUorbmt5eUU1NFJrcmRqMWx6UzVXL1ZIUjhQakxQRy9ycy9UVjhQVExNMmIKLS0tLS1FTkQgUFJJVkFURSBLRVktLS0tLQo=
+---
+# Source: mender/templates/secrets/secret-artifacts-storage.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: artifacts-storage
+  namespace: mender
+  labels:
+    app.kubernetes.io/name: s3-artifacts
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/instance: mender
     app.kubernetes.io/component: secrets
     app.kubernetes.io/part-of: mender
     helm.sh/chart: "mender"
-  annotations:
-    helm.sh/hook: pre-install,pre-upgrade
-    helm.sh/hook-weight: "-11"
-    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
-type: Opaque
 data:
-  MONGO: ""
-  MONGO_URL: ""
-
+  AWS_URI: aHR0cHM6Ly9zMy51cy1lYXN0LTEuYW1hem9uYXdzLmNvbQ==
+  AWS_BUCKET: bWVuZGVyLWFydGlmYWN0cy1udA==
+  STORAGE_BUCKET: bWVuZGVyLWFydGlmYWN0cy1udA==
+  AWS_REGION: dXMtZWFzdC0x
+  AWS_FORCE_PATH_STYLE: ZmFsc2U=
 ---
-# Source: mender/templates/device-auth/deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
+# Source: mender/templates/secrets/secret-smtp.yaml
+apiVersion: v1
+kind: Secret
 metadata:
-  name: mender-device-auth
+  name: smtp
   namespace: mender
   labels:
+    app.kubernetes.io/name: smtp
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/part-of: mender
     app.kubernetes.io/instance: mender
-    app.kubernetes.io/version: "v4.0.1"
-    
-    app.kubernetes.io/name: mender-device-auth
-    app.kubernetes.io/component: device-auth
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: mender-device-auth
-
-  # if deployment is not completed within 10 min, consider it failed,
-  # as result deployment Reason=ProgressDeadlineExceeded
-  # needs to be big enough to rollout to complete
-  progressDeadlineSeconds: 600
-
-  # Rollout upgrade
-  strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 0
-
-  template:
-    
-    metadata:
-      labels:
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/part-of: mender
-        app.kubernetes.io/instance: mender
-        app.kubernetes.io/version: "v4.0.1"
-        app.kubernetes.io/name: mender-device-auth
-        app.kubernetes.io/component: device-auth
-    spec:
-      serviceAccountName: default
-      containers:
-      - name: "device-auth"
-    
-        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/deviceauth:v4.0.1
-        imagePullPolicy: 
-    IfNotPresent
-        resources:
-          limits:
-            cpu: 350m
-            memory: 128Mi
-          requests:
-            cpu: 350m
-            memory: 128Mi
-        args: ["server"]
-        # Readiness/liveness probes
-        readinessProbe:
-          httpGet:
-            path: /api/internal/v1/devauth/health
-            port: 8080
-          periodSeconds: 15
-        livenessProbe:
-          httpGet:
-            path: /api/internal/v1/devauth/alive
-            port: 8080
-          periodSeconds: 5
-        startupProbe:
-          httpGet:
-            path: /api/internal/v1/devauth/alive
-            port: 8080
-          failureThreshold: 36
-          periodSeconds: 5
-        volumeMounts:
-        - name: rsa
-          mountPath: "/etc/deviceauth/rsa/"
-          readOnly: true
-    
-        env:
-        - name: DEVICEAUTH_INVENTORY_ADDR
-          value: http://mender-inventory:8080
-        - name: DEVICEAUTH_IOT_MANAGER_ADDR
-          value: http://mender-iot-manager:8080
-        - name: DEVICEAUTH_ORCHESTRATOR_ADDR
-          value: http://mender-workflows-server:8080
-        - name: DEVICEAUTH_SERVER_PRIV_KEY_PATH
-          value: /etc/deviceauth/rsa/private.pem
-        - name: DEVICEAUTH_JWT_ISSUER
-          value: "Mender"
-        - name: DEVICEAUTH_JWT_EXP_TIMEOUT
-          value: "604800"
-        - name: DEVICEAUTH_MIDDLEWARE
-          value: "prod"
-        # Enable audit logging
-        
-    
-        # Supported configuration settings: https://github.com/mendersoftware/deviceauth/blob/master/config.yaml
-        # Set in order, last value for the key will be used in case duplications.
-        envFrom:
-        - prefix: DEVICEAUTH_
-          secretRef:
-            name: mender-mongodb
-      volumes:
-      - name: rsa
-        secret:
-          secretName: rsa-device-auth
-
----
-# Source: mender/templates/deviceconfig/job.yaml
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: mender-deviceconfig-migration
-  namespace: mender
-  annotations:
-    "helm.sh/hook": pre-install,pre-upgrade
-    "helm.sh/hook-weight": "10"
-    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
-  labels:
-    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: secrets
     app.kubernetes.io/part-of: mender
-    app.kubernetes.io/instance: mender
-    app.kubernetes.io/version: "v4.0.1"
-    app.kubernetes.io/name: mender-deviceconfig
-    app.kubernetes.io/component: deviceconfig
-spec:
-  backoffLimit: 5
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/part-of: mender
-        app.kubernetes.io/instance: mender
-        app.kubernetes.io/version: "v4.0.1"
-        app.kubernetes.io/name: mender-deviceconfig
-        app.kubernetes.io/component: deviceconfig
-    spec:
-      serviceAccountName: default
-      restartPolicy: "Never"
-    
-      containers:
-      - name: "deviceconfig-migration"
-        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/deviceconfig:v4.0.1
-        imagePullPolicy: 
-    IfNotPresent
-        resources:
-          limits:
-            cpu: 100m
-            memory: 128Mi
-          requests:
-            cpu: 100m
-            memory: 128Mi
-        args: ["migrate"]
-    
-        env:
-        # Enable audit logging
-        # Workflows orchestrator address
-        - name: DEVICECONFIG_WORKFLOWS_URL
-          value: "http://mender-workflows-server:8080"
-        
-    
-        # Supported configuration settings: https://github.com/mendersoftware/deviceconfig/blob/master/config.yaml
-        # Set in order, last value for the key will be used in case duplications.
-        envFrom:
-        - prefix: DEVICECONFIG_
-          secretRef:
-            name: mender-mongodb
-
+    helm.sh/chart: "mender"
+data:
+  EMAIL_SENDER: cm9vdEBsb2NhbGhvc3Q=
+  SMTP_HOST: bG9jYWxob3N0OjI1
+  SMTP_AUTH_MECHANISM: UExBSU4=
+  SMTP_USERNAME: bnVsbA==
+  SMTP_PASSWORD: bnVsbA==
+  SMTP_SSL: ZmFsc2U=
 ---
-# Source: mender/templates/device-auth/job.yaml
-
-apiVersion: batch/v1
-kind: Job
+# Source: mender/templates/useradm/secret.yaml
+apiVersion: v1
+kind: Secret
 metadata:
-  name: mender-deviceauth-migration
-  namespace: mender
-  annotations:
-    "helm.sh/hook": pre-install,pre-upgrade
-    "helm.sh/hook-weight": "10"
-    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
-  labels:
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/part-of: mender
-    app.kubernetes.io/instance: mender
-    app.kubernetes.io/version: "v4.0.1"
-    app.kubernetes.io/name: mender-deviceauth
-    app.kubernetes.io/component: deviceauth
-spec:
-  backoffLimit: 5
-  template:
-    
-    metadata:
-      labels:
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/part-of: mender
-        app.kubernetes.io/instance: mender
-        app.kubernetes.io/version: "v4.0.1"
-        app.kubernetes.io/name: mender-deviceauth
-        app.kubernetes.io/component: deviceauth
-    spec:
-      serviceAccountName: default
-      restartPolicy: "Never"
-      containers:
-      - name: "device-auth-migration"
-    
-        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/deviceauth:v4.0.1
-        imagePullPolicy: 
-    IfNotPresent
-        resources:
-          limits:
-            cpu: 350m
-            memory: 128Mi
-          requests:
-            cpu: 350m
-            memory: 128Mi
-        args: ["migrate"]
-    
-        env:
-        - name: DEVICEAUTH_INVENTORY_ADDR
-          value: http://mender-inventory:8080
-        - name: DEVICEAUTH_IOT_MANAGER_ADDR
-          value: http://mender-iot-manager:8080
-        - name: DEVICEAUTH_ORCHESTRATOR_ADDR
-          value: http://mender-workflows-server:8080
-        - name: DEVICEAUTH_SERVER_PRIV_KEY_PATH
-          value: /etc/deviceauth/rsa/private.pem
-        - name: DEVICEAUTH_JWT_ISSUER
-          value: "Mender"
-        - name: DEVICEAUTH_JWT_EXP_TIMEOUT
-          value: "604800"
-        - name: DEVICEAUTH_MIDDLEWARE
-          value: "prod"
-        # Enable audit logging
-        
-    
-        # Supported configuration settings: https://github.com/mendersoftware/deviceauth/blob/master/config.yaml
-        # Set in order, last value for the key will be used in case duplications.
-        envFrom:
-        - prefix: DEVICEAUTH_
-          secretRef:
-            name: mender-mongodb
-
----
-# Source: mender/templates/deployments/job.yaml
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: mender-deployments-migration
-  namespace: mender
-  annotations:
-    "helm.sh/hook": pre-install,pre-upgrade
-    "helm.sh/hook-weight": "10"
-    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
-  labels:
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/part-of: mender
-    app.kubernetes.io/instance: mender
-    app.kubernetes.io/version: "v4.0.1"
-    app.kubernetes.io/name: mender-deployments
-    app.kubernetes.io/component: deployments
-spec:
-  backoffLimit: 5
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/part-of: mender
-        app.kubernetes.io/instance: mender
-        app.kubernetes.io/version: "v4.0.1"
-        app.kubernetes.io/name: mender-deployments
-        app.kubernetes.io/component: deployments
-    spec:
-      serviceAccountName: mender-sa
-      restartPolicy: "Never"
-      containers:
-      - name: "deployments-migration"
-        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/deployments:v4.0.1
-        imagePullPolicy: 
-    IfNotPresent
-        resources:
-          limits:
-            cpu: 300m
-            memory: 128Mi
-          requests:
-            cpu: 300m
-            memory: 64Mi
-        args: ["migrate"]
-    
-        env:
-        - name: DEPLOYMENTS_STORAGE_DEFAULT
-          value: "aws"
-        - name: DEPLOYMENTS_INVENTORY_ADDR
-          value: http://mender-inventory:8080
-        - name: DEPLOYMENTS_MIDDLEWARE
-          value: "prod"
-        - name: DEPLOYMENTS_AWS_TAG_ARTIFACT
-          value: 
-        - name: DEPLOYMENTS_STORAGE_ENABLE_DIRECT_UPLOAD
-          value: "true"
-        - name: DEPLOYMENTS_STORAGE_PROXY_URI
-          value: "https://mender.gmaddaloni.com"
-        - name: DEPLOYMENTS_STORAGE_MAX_IMAGE_SIZE
-          value: "10737418240"
-        - name: DEPLOYMENTS_STORAGE_MAX_GENERATE_DATA_SIZE
-          value: "536870912"
-        
-    
-        # Supported configuration settings: https://github.com/mendersoftware/deployments/blob/master/config.yaml
-        # Set in order, last value for the key will be used in case duplications.
-        envFrom:
-        - prefix: DEPLOYMENTS_
-          secretRef:
-            name: mender-mongodb
-
----
-# Source: mender/templates/deployments/deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mender-deployments
+  name: rsa-useradm
   namespace: mender
   labels:
+    app.kubernetes.io/name: rsa-useradm
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/part-of: mender
     app.kubernetes.io/instance: mender
-    app.kubernetes.io/version: "v4.0.1"
-    
-    app.kubernetes.io/name: mender-deployments
-    app.kubernetes.io/component: deployments
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: mender-deployments
-
-  # if deployment is not completed within 10 min, consider it failed,
-  # as result deployment Reason=ProgressDeadlineExceeded
-  # needs to be big enough to rollout to complete
-  progressDeadlineSeconds: 600
-
-  # Rollout upgrade
-  #
-  #
-  # strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 0
-  #
-  # Rollout upgrade
-  strategy:
-    rollingUpdate:
-    maxSurge: 25%
-    maxUnavailable: 0
-
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/part-of: mender
-        app.kubernetes.io/instance: mender
-        app.kubernetes.io/version: "v4.0.1"
-        app.kubernetes.io/name: mender-deployments
-        app.kubernetes.io/component: deployments
-    spec:
-      serviceAccountName: mender-sa
-      containers:
-      - name: "deployments"
-        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/deployments:v4.0.1
-        imagePullPolicy: 
-    IfNotPresent
-        resources:
-          limits:
-            cpu: 300m
-            memory: 128Mi
-          requests:
-            cpu: 300m
-            memory: 64Mi
-        args: ["server"]
-        # Readiness/liveness probes
-        readinessProbe:
-          httpGet:
-            path: /api/internal/v1/deployments/health
-            port: 8080
-          periodSeconds: 15
-        livenessProbe:
-          httpGet:
-            path: /api/internal/v1/deployments/alive
-            port: 8080
-          periodSeconds: 5
-        startupProbe:
-          httpGet:
-            path: /api/internal/v1/deployments/alive
-            port: 8080
-          failureThreshold: 36
-          periodSeconds: 5
-    
-        env:
-        - name: DEPLOYMENTS_STORAGE_DEFAULT
-          value: "aws"
-        - name: DEPLOYMENTS_INVENTORY_ADDR
-          value: http://mender-inventory:8080
-        - name: DEPLOYMENTS_MIDDLEWARE
-          value: "prod"
-        - name: DEPLOYMENTS_AWS_TAG_ARTIFACT
-          value: 
-        - name: DEPLOYMENTS_STORAGE_ENABLE_DIRECT_UPLOAD
-          value: "true"
-        - name: DEPLOYMENTS_STORAGE_PROXY_URI
-          value: "https://mender.gmaddaloni.com"
-        - name: DEPLOYMENTS_STORAGE_MAX_IMAGE_SIZE
-          value: "10737418240"
-        - name: DEPLOYMENTS_STORAGE_MAX_GENERATE_DATA_SIZE
-          value: "536870912"
-        
-    
-        # Supported configuration settings: https://github.com/mendersoftware/deployments/blob/master/config.yaml
-        # Set in order, last value for the key will be used in case duplications.
-        envFrom:
-        - prefix: DEPLOYMENTS_
-          secretRef:
-            name: mender-mongodb
-        - prefix: DEPLOYMENTS_
-          secretRef:
-            name: artifacts-storage
-
----
-# Source: mender/templates/ingress.yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: mender-ingress
-  namespace: mender
-  labels:
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/part-of: mender
-    app.kubernetes.io/instance: mender
-    app.kubernetes.io/version: "v4.0.1"
-    
-  annotations:
-    alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig":{
-      "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'
-    alb.ingress.kubernetes.io/backend-protocol: HTTP
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:194722422560:certificate/9a221dd3-2a8a-46bd-ab80-ec8839b6bbf8
-    alb.ingress.kubernetes.io/group.name: mender
-    alb.ingress.kubernetes.io/healthcheck-path: /ui/
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
-    alb.ingress.kubernetes.io/load-balancer-attributes: routing.http2.enabled=true,idle_timeout.timeout_seconds=600
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/target-type: ip
-spec:
-  ingressClassName: alb
-  tls:
-    - hosts:
-        - mender.example.com
-      secretName: mender-ingress-tls
-  rules:
-    - host: "mender.gmaddaloni.com"
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: ssl-redirect
-                port:
-                  name: use-annotation
-          - path: /ui/
-            pathType: Prefix
-            backend:
-              service:
-                name: mender-gateway
-                port:
-                  name: 80
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: mender-api-gateway
-                port:
-                  number: 80
-
----
-# Source: mender/templates/useradm/deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mender-useradm
-  namespace: mender
-  labels:
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/part-of: mender
-    app.kubernetes.io/instance: mender
-    app.kubernetes.io/version: "v4.0.1"
-    
-    app.kubernetes.io/name: mender-useradm
     app.kubernetes.io/component: useradm
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: mender-useradm
-
-  # if deployment is not completed within 10 min, consider it failed,
-  # as result deployment Reason=ProgressDeadlineExceeded
-  # needs to be big enough to rollout to complete
-
-  progressDeadlineSeconds: 600
-
-  # Rollout upgrade
-  strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 0
-
-  template:
-    
-    metadata:
-      labels:
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/part-of: mender
-        app.kubernetes.io/instance: mender
-        app.kubernetes.io/version: "v4.0.1"
-        app.kubernetes.io/name: mender-useradm
-        app.kubernetes.io/component: useradm
-    spec:
-      serviceAccountName: default
-      containers:
-      - name: "useradm"
-        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/useradm:v4.0.1
-        imagePullPolicy: 
-    IfNotPresent
-        resources:
-          limits:
-            cpu: 150m
-            memory: 128Mi
-          requests:
-            cpu: 150m
-            memory: 64Mi
-        args: ["server"]
-        # Readiness/liveness probes
-        readinessProbe:
-          httpGet:
-            path: /api/internal/v1/useradm/health
-            port: 8080
-          periodSeconds: 15
-        livenessProbe:
-          httpGet:
-            path: /api/internal/v1/useradm/alive
-            port: 8080
-          periodSeconds: 5
-        startupProbe:
-          httpGet:
-            path: /api/internal/v1/useradm/alive
-            port: 8080
-          failureThreshold: 36
-          periodSeconds: 5
-        volumeMounts:
-        - name: rsa
-          mountPath: "/etc/useradm/rsa/"
-          readOnly: true
-    
-        env:
-        - name: USERADM_INVENTORY_ADDR
-          value: "http://mender-inventory:8080"
-        - name: USERADM_ORCHESTRATOR_ADDR
-          value: "http://mender-workflows-server:8080"
-        - name: USERADM_MIDDLEWARE
-          value: "prod"
-        - name: USERADM_PROXY_COUNT
-          value: "2"
-        - name: USERADM_JWT_ISSUER
-          value: "Mender Users"
-        - name: USERADM_JWT_EXP_TIMEOUT
-          value: "604800"
-        - name: USERADM_BASE_URL
-          value: "https://mender.gmaddaloni.com"
-        - name: USERADM_SERVER_PRIV_KEY_PATH
-          value: /etc/useradm/rsa/private.pem
-        - name: USERADM_TOTP_ISSUER
-          value: "Mender"
-        
-    
-        # Supported configuration settings: https://github.com/mendersoftware/useradm/blob/master/config.yaml
-        # Set in order, last value for the key will be used in case duplications.
-        envFrom:
-        - prefix: USERADM_
-          secretRef:
-            name: mender-mongodb
-      volumes:
-      - name: rsa
-        secret:
-          secretName: rsa-useradm
-
----
-# Source: mender/templates/deviceconfig/deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mender-deviceconfig
-  namespace: mender
-  labels:
-    app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: mender
-    app.kubernetes.io/instance: mender
-    app.kubernetes.io/version: "v4.0.1"
-    
-    app.kubernetes.io/name: mender-deviceconfig
-    app.kubernetes.io/component: deviceconfig
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: mender-deviceconfig
-
-  # if deployment is not completed within 10 min, consider it failed,
-  # as result deployment Reason=ProgressDeadlineExceeded
-  # needs to be big enough to rollout to complete
-  progressDeadlineSeconds: 600
-
-  # Rollout upgrade
-  strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 0
-
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/part-of: mender
-        app.kubernetes.io/instance: mender
-        app.kubernetes.io/version: "v4.0.1"
-        app.kubernetes.io/name: mender-deviceconfig
-        app.kubernetes.io/component: deviceconfig
-    spec:
-      serviceAccountName: default
-    
-      containers:
-      - name: "deviceconfig"
-        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/deviceconfig:v4.0.1
-        imagePullPolicy: 
-    IfNotPresent
-        resources:
-          limits:
-            cpu: 100m
-            memory: 128Mi
-          requests:
-            cpu: 100m
-            memory: 128Mi
-        args: ["server"]
-        # Readiness/liveness probes
-        readinessProbe:
-          httpGet:
-            path: /api/internal/v1/deviceconfig/health
-            port: 8080
-          periodSeconds: 15
-        livenessProbe:
-          httpGet:
-            path: /api/internal/v1/deviceconfig/alive
-            port: 8080
-          periodSeconds: 5
-        startupProbe:
-          httpGet:
-            path: /api/internal/v1/deviceconfig/alive
-            port: 8080
-          failureThreshold: 36
-          periodSeconds: 5
-    
-        env:
-        # Enable audit logging
-        # Workflows orchestrator address
-        - name: DEVICECONFIG_WORKFLOWS_URL
-          value: "http://mender-workflows-server:8080"
-        
-    
-        # Supported configuration settings: https://github.com/mendersoftware/deviceconfig/blob/master/config.yaml
-        # Set in order, last value for the key will be used in case duplications.
-        envFrom:
-        - prefix: DEVICECONFIG_
-          secretRef:
-            name: mender-mongodb
-
+    helm.sh/chart: "mender"
+data:
+  private.pem: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1DNENBUUF3QlFZREsyVndCQ0lFSUJ3Y1cvWHNHYnVHWWZaV2RvQlU5M3I1eFBwbkNVdVdxN01IQW9MM0d2cFoKLS0tLS1FTkQgUFJJVkFURSBLRVktLS0tLQo=
 ---
 # Source: mender/templates/api-gateway/configmap.yaml
-
-
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -1149,650 +513,6 @@ data:
           replacepathregex:
             regex: "^/api/management/v1/inventory/(.*)"
             replacement: "/api/0.1.0/$1"
-
----
-# Source: mender/templates/useradm/secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rsa-useradm
-  namespace: mender
-  labels:
-    app.kubernetes.io/name: rsa-useradm
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/instance: mender
-    app.kubernetes.io/component: useradm
-    app.kubernetes.io/part-of: mender
-    helm.sh/chart: "mender"
-data:
-  private.pem: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1DNENBUUF3QlFZREsyVndCQ0lFSVBwWHFFa0U3MXlhRlovb3BWWUZmL1lHL29SdDd3Um5XQ0NqcUo2U2VlRDEKLS0tLS1FTkQgUFJJVkFURSBLRVktLS0tLQo=
-
----
-# Source: mender/templates/inventory/service.yaml
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: mender-inventory
-  namespace: mender
-  labels:
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/part-of: mender
-    app.kubernetes.io/instance: mender
-    app.kubernetes.io/version: "v4.0.1"
-    
-    app.kubernetes.io/name: inventory-svc
-    app.kubernetes.io/component: inventory
-spec:
-  type: ClusterIP
-  ports:
-  - port: 8080
-    name: http
-    protocol: TCP
-    targetPort: 8080
-  selector:
-    app.kubernetes.io/name: mender-inventory
-
----
-# Source: mender/templates/deviceconnect/job.yaml
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: mender-deviceconnect-migration
-  namespace: mender
-  annotations:
-    "helm.sh/hook": pre-install,pre-upgrade
-    "helm.sh/hook-weight": "10"
-    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
-  labels:
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/part-of: mender
-    app.kubernetes.io/instance: mender
-    app.kubernetes.io/version: "v4.0.1"
-    app.kubernetes.io/name: mender-deviceconnect
-    app.kubernetes.io/component: deviceconnect
-spec:
-  backoffLimit: 5
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/part-of: mender
-        app.kubernetes.io/instance: mender
-        app.kubernetes.io/version: "v4.0.1"
-        app.kubernetes.io/name: mender-deviceconnect
-        app.kubernetes.io/component: deviceconnect
-    spec:
-      serviceAccountName: default
-      restartPolicy: "Never"
-      containers:
-      - name: "deviceconnect-migration"
-        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/deviceconnect:v4.0.1
-        imagePullPolicy: 
-    IfNotPresent
-        resources:
-          limits:
-            cpu: 100m
-            memory: 128Mi
-          requests:
-            cpu: 100m
-            memory: 128Mi
-        args: ["migrate"]
-    
-        env:
-        # NATS uri
-        - name: DEVICECONNECT_NATS_URI
-          valueFrom:
-            secretKeyRef:
-              key: NATS_URI
-              name: mender-nats
-        # Enable audit logging
-    
-        # Graceful shutdown timeout
-        - name: DEVICECONNECT_GRACEFUL_SHUTDOWN_TIMEOUT
-          value: 60s
-    
-        # Workflows orchestrator address
-        - name: DEVICECONNECT_WORKFLOWS_URL
-          value: "http://mender-workflows-server:8080"
-    
-        - name: DEVICECONNECT_WS_ALLOWED_ORIGINS
-          value: >-
-            mender.gmaddaloni.com https://mender.gmaddaloni.com wss://mender.gmaddaloni.com
-        
-    
-        # Supported configuration settings: https://github.com/mendersoftware/deviceconnect/blob/master/config.yaml
-        # Set in order, last value for the key will be used in case duplications.
-        envFrom:
-        - prefix: DEVICECONNECT_
-          secretRef:
-            name: mender-mongodb
-
----
-# Source: mender/templates/deviceconnect/deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mender-deviceconnect
-  namespace: mender
-  labels:
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/part-of: mender
-    app.kubernetes.io/instance: mender
-    app.kubernetes.io/version: "v4.0.1"
-    
-    app.kubernetes.io/name: mender-deviceconnect
-    app.kubernetes.io/component: deviceconnect
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: mender-deviceconnect
-
-  # if deployment is not completed within 10 min, consider it failed,
-  # as result deployment Reason=ProgressDeadlineExceeded
-  # needs to be big enough to rollout to complete
-  progressDeadlineSeconds: 600
-
-  # Rollout upgrade
-  strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 0
-
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/part-of: mender
-        app.kubernetes.io/instance: mender
-        app.kubernetes.io/version: "v4.0.1"
-        app.kubernetes.io/name: mender-deviceconnect
-        app.kubernetes.io/component: deviceconnect
-    spec:
-      serviceAccountName: default
-      containers:
-      - name: "deviceconnect"
-        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/deviceconnect:v4.0.1
-        imagePullPolicy: 
-    IfNotPresent
-        resources:
-          limits:
-            cpu: 100m
-            memory: 128Mi
-          requests:
-            cpu: 100m
-            memory: 128Mi
-        args: ["server"]
-        # Readiness/liveness probes
-        readinessProbe:
-          httpGet:
-            path: /api/internal/v1/deviceconnect/health
-            port: 8080
-          periodSeconds: 15
-        livenessProbe:
-          httpGet:
-            path: /api/internal/v1/deviceconnect/alive
-            port: 8080
-          periodSeconds: 5
-        startupProbe:
-          httpGet:
-            path: /api/internal/v1/deviceconnect/alive
-            port: 8080
-          failureThreshold: 36
-          periodSeconds: 5
-    
-        env:
-        # NATS uri
-        - name: DEVICECONNECT_NATS_URI
-          valueFrom:
-            secretKeyRef:
-              key: NATS_URI
-              name: mender-nats
-        # Enable audit logging
-    
-        # Graceful shutdown timeout
-        - name: DEVICECONNECT_GRACEFUL_SHUTDOWN_TIMEOUT
-          value: 60s
-    
-        # Workflows orchestrator address
-        - name: DEVICECONNECT_WORKFLOWS_URL
-          value: "http://mender-workflows-server:8080"
-    
-        - name: DEVICECONNECT_WS_ALLOWED_ORIGINS
-          value: >-
-            mender.gmaddaloni.com https://mender.gmaddaloni.com wss://mender.gmaddaloni.com
-        
-    
-        # Supported configuration settings: https://github.com/mendersoftware/deviceconnect/blob/master/config.yaml
-        # Set in order, last value for the key will be used in case duplications.
-        envFrom:
-        - prefix: DEVICECONNECT_
-          secretRef:
-            name: mender-mongodb
-        # Graceful shutdown
-        lifecycle:
-          preStop:
-            httpGet:
-              port: 8080
-              path: api/internal/v1/deviceconnect/shutdown
-      # Termination grace period should be higher than graceful shutdown timeout
-      terminationGracePeriodSeconds: 65
-
----
-# Source: mender/templates/deviceconfig/service.yaml
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: mender-deviceconfig
-  namespace: mender
-  labels:
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/part-of: mender
-    app.kubernetes.io/instance: mender
-    app.kubernetes.io/version: "v4.0.1"
-    
-    app.kubernetes.io/name: deviceconfig-svc
-    app.kubernetes.io/component: deviceconfig
-spec:
-  type: ClusterIP
-  ports:
-  - port: 8080
-    name: http
-    protocol: TCP
-    targetPort: 8080
-  selector:
-    app.kubernetes.io/name: mender-deviceconfig
-
----
-# Source: mender/templates/workflows/deployment-server.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mender-workflows-server
-  namespace: mender
-  labels:
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/part-of: mender
-    app.kubernetes.io/instance: mender
-    app.kubernetes.io/version: "v4.0.1"
-    
-    app.kubernetes.io/name: mender-workflows-server
-    app.kubernetes.io/component: workflows
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: mender-workflows-server
-
-  # if deployment is not completed within 10 min, consider it failed,
-  # as result deployment Reason=ProgressDeadlineExceeded
-  # needs to be big enough to rollout to complete
-  progressDeadlineSeconds: 600
-
-  # Rollout upgrade
-  strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 0
-
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/part-of: mender
-        app.kubernetes.io/instance: mender
-        app.kubernetes.io/version: "v4.0.1"
-        app.kubernetes.io/name: mender-workflows-server
-        app.kubernetes.io/component: workflows-server
-    spec:
-      serviceAccountName: default
-      containers:
-      - name: "workflows"
-        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/workflows:v4.0.1
-        imagePullPolicy: 
-    IfNotPresent
-        resources:
-          limits:
-            cpu: 100m
-            memory: 128Mi
-          requests:
-            cpu: 10m
-            memory: 64Mi
-    
-        args:
-          - server
-        # Readiness/liveness probes
-        readinessProbe:
-          httpGet:
-            path: /api/v1/health
-            port: 8080
-          periodSeconds: 15
-        livenessProbe:
-          httpGet:
-            path: /status
-            port: 8080
-          periodSeconds: 5
-        startupProbe:
-          httpGet:
-            path: /status
-            port: 8080
-          failureThreshold: 36
-          periodSeconds: 5
-    
-        env:
-        # NATS uri
-        - name: AUDITLOGS_ADDR
-          value: mender-auditlogs:8080
-        - name: DEPLOYMENTS_ADDR
-          value: mender-deployments:8080
-        - name: DEVICEAUTH_ADDR
-          value: mender-device-auth:8080
-        - name: DEVICECONFIG_ADDR
-          value: mender-deviceconfig:8080
-        - name: DEVICECONNECT_ADDR
-          value: mender-deviceconnect:8080
-        - name: DEVICEMONITOR_ADDR
-          value: mender-devicemonitor:8080
-        - name: INVENTORY_ADDR
-          value: mender-inventory:8080
-        - name: IOT_MANAGER_ADDR
-          value: mender-iot-manager:8080
-        - name: TENANTADM_ADDR
-          value: mender-tenantadm:8080
-        - name: USERADM_ADDR
-          value: mender-useradm:8080
-        - name: WORKFLOWS_SERVER_ADDR
-          value: mender-workflows-server:8080
-        - name: WORKFLOWS_NATS_URI
-          valueFrom:
-            secretKeyRef:
-              key: NATS_URI
-              name: mender-nats
-        
-    
-        # Supported configuration settings: https://github.com/mendersoftware/workflows/blob/master/config.yaml
-        # Set in order, last value for the key will be used in case duplications.
-        envFrom:
-        - prefix: WORKFLOWS_
-          secretRef:
-            name: mender-mongodb
-
----
-# Source: mender/templates/useradm/job.yaml
-
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: mender-useradm-migration
-  namespace: mender
-  annotations:
-    "helm.sh/hook": pre-install,pre-upgrade
-    "helm.sh/hook-weight": "10"
-    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
-  labels:
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/part-of: mender
-    app.kubernetes.io/instance: mender
-    app.kubernetes.io/version: "v4.0.1"
-    app.kubernetes.io/name: mender-useradm
-    app.kubernetes.io/component: useradm
-spec:
-  backoffLimit: 5
-  template:
-    
-    metadata:
-      labels:
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/part-of: mender
-        app.kubernetes.io/instance: mender
-        app.kubernetes.io/version: "v4.0.1"
-        app.kubernetes.io/name: mender-useradm
-        app.kubernetes.io/component: useradm
-    spec:
-      serviceAccountName: default
-      restartPolicy: "Never"
-      containers:
-      - name: "useradm-migration"
-        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/useradm:v4.0.1
-        imagePullPolicy: 
-    IfNotPresent
-        resources:
-          limits:
-            cpu: 150m
-            memory: 128Mi
-          requests:
-            cpu: 150m
-            memory: 64Mi
-        args: ["migrate"]
-    
-        env:
-        - name: USERADM_INVENTORY_ADDR
-          value: "http://mender-inventory:8080"
-        - name: USERADM_ORCHESTRATOR_ADDR
-          value: "http://mender-workflows-server:8080"
-        - name: USERADM_MIDDLEWARE
-          value: "prod"
-        - name: USERADM_PROXY_COUNT
-          value: "2"
-        - name: USERADM_JWT_ISSUER
-          value: "Mender Users"
-        - name: USERADM_JWT_EXP_TIMEOUT
-          value: "604800"
-        - name: USERADM_BASE_URL
-          value: "https://mender.gmaddaloni.com"
-        - name: USERADM_SERVER_PRIV_KEY_PATH
-          value: /etc/useradm/rsa/private.pem
-        - name: USERADM_TOTP_ISSUER
-          value: "Mender"
-        
-    
-        # Supported configuration settings: https://github.com/mendersoftware/useradm/blob/master/config.yaml
-        # Set in order, last value for the key will be used in case duplications.
-        envFrom:
-        - prefix: USERADM_
-          secretRef:
-            name: mender-mongodb
-
----
-# Source: mender/templates/secrets/secret-smtp.yaml
-
-apiVersion: v1
-kind: Secret
-metadata:
-  name: smtp
-  namespace: mender
-  labels:
-    app.kubernetes.io/name: smtp
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/instance: mender
-    app.kubernetes.io/component: secrets
-    app.kubernetes.io/part-of: mender
-    helm.sh/chart: "mender"
-data:
-  EMAIL_SENDER: cm9vdEBsb2NhbGhvc3Q=
-  SMTP_HOST: bG9jYWxob3N0OjI1
-  SMTP_AUTH_MECHANISM: UExBSU4=
-  SMTP_USERNAME: bnVsbA==
-  SMTP_PASSWORD: bnVsbA==
-  SMTP_SSL: ZmFsc2U=
-
----
-# Source: mender/templates/gui/service.yaml
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: mender-gui
-  namespace: mender
-  labels:
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/part-of: mender
-    app.kubernetes.io/instance: mender
-    app.kubernetes.io/version: "v4.0.1"
-    
-    app.kubernetes.io/name: gui-svc
-    app.kubernetes.io/component: gui
-spec:
-  type: ClusterIP
-  ports:
-  - port: 80
-    name: http
-    protocol: TCP
-    targetPort: 8090
-  selector:
-    app.kubernetes.io/name: mender-gui
-
----
-# Source: mender/templates/create-artifact-worker/deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mender-create-artifact-worker
-  namespace: mender
-  labels:
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/part-of: mender
-    app.kubernetes.io/instance: mender
-    app.kubernetes.io/version: "v4.0.1"
-    
-    app.kubernetes.io/name: mender-create-artifact-worker
-    app.kubernetes.io/component: create-artifact-worker
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: mender-create-artifact-worker
-
-  # if deployment is not completed within 10 min, consider it failed,
-  # as result deployment Reason=ProgressDeadlineExceeded
-  # needs to be big enough to rollout to complete
-  progressDeadlineSeconds: 600
-
-  # Rollout upgrade
-  strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 0
-
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/name: mender-create-artifact-worker
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/part-of: mender
-        app.kubernetes.io/instance: mender
-        app.kubernetes.io/version: "v4.0.1"
-        
-        app.kubernetes.io/component: create-artifact-worker
-    spec:
-
-      containers:
-      - name: create-artifact-worker
-        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/create-artifact-worker:v4.0.1
-        imagePullPolicy: 
-IfNotPresent
-        resources:
-          limits:
-            cpu: 100m
-            memory: 1024Mi
-          requests:
-            cpu: 100m
-            memory: 128Mi
-        command: ["workflows", "--config", "/etc/workflows/config.yaml", "worker"]
-
-        # Supported configuration settings: https://github.com/mendersoftware/workflows/blob/master/config.yaml
-        # Set in order, last value for the key will be used in case duplications.
-        env:
-        # NATS uri
-
-        - name: WORKFLOWS_MENDER_URL
-          value: "https://mender.gmaddaloni.com"
-        - name: CREATE_ARTIFACT_GATEWAY_URL
-          value: https://mender.gmaddaloni.com
-        - name: CREATE_ARTIFACT_SKIPVERIFY
-          value: "1"
-        - name: CREATE_ARTIFACT_DEPLOYMENTS_URL
-          value: http://mender-deployments:8080
-        
-        envFrom:
-        - prefix: WORKFLOWS_
-          secretRef:
-            name: mender-mongodb
-        - prefix: WORKFLOWS_
-          secretRef:
-            name: mender-nats
-
----
-# Source: mender/templates/workflows/service.yaml
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: mender-workflows-server
-  namespace: mender
-  labels:
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/part-of: mender
-    app.kubernetes.io/instance: mender
-    app.kubernetes.io/version: "v4.0.1"
-    
-    app.kubernetes.io/name: mender-workflows
-    app.kubernetes.io/component: workflows-svc
-spec:
-  type: ClusterIP
-  ports:
-  - port: 8080
-    name: http
-    protocol: TCP
-    targetPort: 8080
-  selector:
-    app.kubernetes.io/name: mender-workflows-server
-
----
-# Source: mender/templates/device-auth/secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rsa-device-auth
-  namespace: mender
-  labels:
-    app.kubernetes.io/name: rsa-device-auth
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/instance: mender
-    app.kubernetes.io/component: device-auth
-    app.kubernetes.io/part-of: mender
-    helm.sh/chart: "mender"
-data:
-  private.pem: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1DNENBUUF3QlFZREsyVndCQ0lFSUp4YnVvdW9yWWZKdS82SXNjRkZWeDJRTEVyS0dYY2psQkJGSFIzdE1iWUIKLS0tLS1FTkQgUFJJVkFURSBLRVktLS0tLQo=
-
----
-# Source: mender/templates/deployments/service.yaml
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: mender-deployments
-  namespace: mender
-  labels:
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/part-of: mender
-    app.kubernetes.io/instance: mender
-    app.kubernetes.io/version: "v4.0.1"
-    
-    app.kubernetes.io/name: deployments-svc
-    app.kubernetes.io/component: deployments
-spec:
-  type: ClusterIP
-  ports:
-  - port: 8080
-    name: http
-    protocol: TCP
-    targetPort: 8080
-  selector:
-    app.kubernetes.io/name: mender-deployments
-
 ---
 # Source: mender/templates/configmap.yaml
 apiVersion: v1
@@ -1809,205 +529,8 @@ metadata:
     helm.sh/chart: "mender"
 data:
   version: v4.0.1
-
----
-# Source: mender/templates/workflows/job.yaml
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: mender-workflows-migration
-  namespace: mender
-  annotations:
-    "helm.sh/hook": pre-install,pre-upgrade
-    "helm.sh/hook-weight": "10"
-    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
-  labels:
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/part-of: mender
-    app.kubernetes.io/instance: mender
-    app.kubernetes.io/version: "v4.0.1"
-    app.kubernetes.io/name: mender-workflows
-    app.kubernetes.io/component: workflows
-spec:
-  backoffLimit: 5
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/part-of: mender
-        app.kubernetes.io/instance: mender
-        app.kubernetes.io/version: "v4.0.1"
-        app.kubernetes.io/name: mender-workflows
-        app.kubernetes.io/component: workflows
-    spec:
-      serviceAccountName: default
-      restartPolicy: "Never"
-      containers:
-      - name: "workflows-migration"
-        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/workflows:v4.0.1
-        imagePullPolicy: 
-    IfNotPresent
-        resources:
-          limits:
-            cpu: 100m
-            memory: 128Mi
-          requests:
-            cpu: 10m
-            memory: 64Mi
-    
-        args:
-          - migrate
-          - --skip-nats
-    
-        env:
-        # NATS uri
-        - name: AUDITLOGS_ADDR
-          value: mender-auditlogs:8080
-        - name: DEPLOYMENTS_ADDR
-          value: mender-deployments:8080
-        - name: DEVICEAUTH_ADDR
-          value: mender-device-auth:8080
-        - name: DEVICECONFIG_ADDR
-          value: mender-deviceconfig:8080
-        - name: DEVICECONNECT_ADDR
-          value: mender-deviceconnect:8080
-        - name: DEVICEMONITOR_ADDR
-          value: mender-devicemonitor:8080
-        - name: INVENTORY_ADDR
-          value: mender-inventory:8080
-        - name: IOT_MANAGER_ADDR
-          value: mender-iot-manager:8080
-        - name: TENANTADM_ADDR
-          value: mender-tenantadm:8080
-        - name: USERADM_ADDR
-          value: mender-useradm:8080
-        - name: WORKFLOWS_SERVER_ADDR
-          value: mender-workflows-server:8080
-        - name: WORKFLOWS_NATS_URI
-          valueFrom:
-            secretKeyRef:
-              key: NATS_URI
-              name: mender-nats
-        
-    
-        # Supported configuration settings: https://github.com/mendersoftware/workflows/blob/master/config.yaml
-        # Set in order, last value for the key will be used in case duplications.
-        envFrom:
-        - prefix: WORKFLOWS_
-          secretRef:
-            name: mender-mongodb
-
----
-# Source: mender/templates/workflows/deployment-worker.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mender-workflows-worker
-  namespace: mender
-  labels:
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/part-of: mender
-    app.kubernetes.io/instance: mender
-    app.kubernetes.io/version: "v4.0.1"
-    
-    app.kubernetes.io/name: mender-workflows-worker
-    app.kubernetes.io/component: workflows
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: mender-workflows-worker
-
-  # if deployment is not completed within 10 min, consider it failed,
-  # as result deployment Reason=ProgressDeadlineExceeded
-  # needs to be big enough to rollout to complete
-  progressDeadlineSeconds: 600
-
-  # Rollout upgrade
-  strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 0
-
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/part-of: mender
-        app.kubernetes.io/instance: mender
-        app.kubernetes.io/version: "v4.0.1"
-        app.kubernetes.io/name: mender-workflows-worker
-        app.kubernetes.io/component: workflows-worker
-    spec:
-      serviceAccountName: default
-      containers:
-      - name: "workflows"
-        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/workflows:v4.0.1
-        imagePullPolicy: 
-    IfNotPresent
-        resources:
-          limits:
-            cpu: 100m
-            memory: 128Mi
-          requests:
-            cpu: 10m
-            memory: 64Mi
-    
-        args:
-          - worker
-          - --excluded-workflows
-          - generate_artifact
-    
-        env:
-        # NATS uri
-        - name: AUDITLOGS_ADDR
-          value: mender-auditlogs:8080
-        - name: DEPLOYMENTS_ADDR
-          value: mender-deployments:8080
-        - name: DEVICEAUTH_ADDR
-          value: mender-device-auth:8080
-        - name: DEVICECONFIG_ADDR
-          value: mender-deviceconfig:8080
-        - name: DEVICECONNECT_ADDR
-          value: mender-deviceconnect:8080
-        - name: DEVICEMONITOR_ADDR
-          value: mender-devicemonitor:8080
-        - name: INVENTORY_ADDR
-          value: mender-inventory:8080
-        - name: IOT_MANAGER_ADDR
-          value: mender-iot-manager:8080
-        - name: TENANTADM_ADDR
-          value: mender-tenantadm:8080
-        - name: USERADM_ADDR
-          value: mender-useradm:8080
-        - name: WORKFLOWS_SERVER_ADDR
-          value: mender-workflows-server:8080
-        - name: WORKFLOWS_NATS_URI
-          valueFrom:
-            secretKeyRef:
-              key: NATS_URI
-              name: mender-nats
-        - name: WORKFLOWS_MENDER_URL
-          value: "https://mender.gmaddaloni.com"
-        - name: HAVE_DEVICECONNECT
-          value: "true"
-        - name: HAVE_DEVICECONFIG
-          value: "true"
-        
-    
-        # Supported configuration settings: https://github.com/mendersoftware/workflows/blob/master/config.yaml
-        # Set in order, last value for the key will be used in case duplications.
-        envFrom:
-        - prefix: WORKFLOWS_
-          secretRef:
-            name: mender-mongodb
-        - prefix: WORKFLOWS_
-          secretRef:
-            name: smtp
-
 ---
 # Source: mender/templates/api-gateway/service.yaml
-
 apiVersion: v1
 kind: Service
 metadata:
@@ -2030,170 +553,12 @@ spec:
     name: http
   selector:
     app.kubernetes.io/name: mender-api-gateway
-
 ---
-# Source: mender/templates/iot-manager/job.yaml
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: mender-iot-manager-migration
-  namespace: mender
-  annotations:
-    "helm.sh/hook": pre-install,pre-upgrade
-    "helm.sh/hook-weight": "10"
-    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
-  labels:
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/part-of: mender
-    app.kubernetes.io/instance: mender
-    app.kubernetes.io/version: "v4.0.1"
-    app.kubernetes.io/name: mender-iot-manager
-    app.kubernetes.io/component: iot-manager
-spec:
-  backoffLimit: 5
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/part-of: mender
-        app.kubernetes.io/instance: mender
-        app.kubernetes.io/version: "v4.0.1"
-        app.kubernetes.io/name: mender-iot-manager
-        app.kubernetes.io/component: iot-manager
-    spec:
-      serviceAccountName: default
-      restartPolicy: "Never"
-      containers:
-      - name: "iot-manager-migration"
-        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/iot-manager:v4.0.1
-        imagePullPolicy: 
-    IfNotPresent
-        resources:
-          limits:
-            cpu: 50m
-            memory: 128Mi
-          requests:
-            cpu: 50m
-            memory: 128Mi
-        args: ["migrate"]
-    
-        env:
-        - name: IOT_MANAGER_DEVICEAUTH_ADDR
-          value: "http://mender-device-auth:8080"
-        - name: IOT_MANAGER_NATS_URI
-          valueFrom:
-            secretKeyRef:
-              key: NATS_URI
-              name: mender-nats
-        
-    
-        # Set in order, last value for the key will be used in case duplications.
-        envFrom:
-        - prefix: IOT_MANAGER_
-          secretRef:
-            name: mender-mongodb
-
----
-# Source: mender/templates/inventory/deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mender-inventory
-  namespace: mender
-  labels:
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/part-of: mender
-    app.kubernetes.io/instance: mender
-    app.kubernetes.io/version: "v4.0.1"
-    
-    app.kubernetes.io/name: mender-inventory
-    app.kubernetes.io/component: inventory
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: mender-inventory
-
-  # if deployment is not completed within 10 min, consider it failed,
-  # as result deployment Reason=ProgressDeadlineExceeded
-  # needs to be big enough to rollout to complete
-  progressDeadlineSeconds: 600
-
-  # Rollout upgrade
-  strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 0
-
-  template:
-    
-    metadata:
-      labels:
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/part-of: mender
-        app.kubernetes.io/instance: mender
-        app.kubernetes.io/version: "v4.0.1"
-        app.kubernetes.io/name: mender-inventory
-        app.kubernetes.io/component: inventory
-    spec:
-      serviceAccountName: default
-      containers:
-      - name: "inventory"
-        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/inventory:v4.0.1
-        imagePullPolicy: 
-    IfNotPresent
-        resources:
-          limits:
-            cpu: 300m
-            memory: 128Mi
-          requests:
-            cpu: 300m
-            memory: 128Mi
-        args: ["server"]
-        # Readiness/liveness probes
-        readinessProbe:
-          httpGet:
-            path: /api/internal/v1/inventory/health
-            port: 8080
-          periodSeconds: 15
-        livenessProbe:
-          httpGet:
-            path: /api/internal/v1/inventory/alive
-            port: 8080
-          periodSeconds: 5
-        startupProbe:
-          httpGet:
-            path: /api/internal/v1/inventory/alive
-            port: 8080
-          failureThreshold: 36
-          periodSeconds: 5
-    
-        env:
-        - name: INVENTORY_DEVICEMONITOR_ADDR
-          value: "http://mender-devicemonitor:8080"
-        - name: INVENTORY_ORCHESTRATOR_ADDR
-          value: "http://mender-workflows-server:8080"
-        - name: INVENTORY_MIDDLEWARE
-          value: "prod"
-        - name: INVENTORY_NATS_URI
-          valueFrom:
-            secretKeyRef:
-              key: NATS_URI
-              name: mender-nats
-        
-    
-        envFrom:
-        - prefix: INVENTORY_
-          secretRef:
-            name: mender-mongodb
-
----
-# Source: mender/templates/iot-manager/service.yaml
-
+# Source: mender/templates/deployments/service.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: mender-iot-manager
+  name: mender-deployments
   namespace: mender
   labels:
     app.kubernetes.io/managed-by: Helm
@@ -2201,8 +566,8 @@ metadata:
     app.kubernetes.io/instance: mender
     app.kubernetes.io/version: "v4.0.1"
     
-    app.kubernetes.io/name: iot-manager-svc
-    app.kubernetes.io/component: iot-manager
+    app.kubernetes.io/name: deployments-svc
+    app.kubernetes.io/component: deployments
 spec:
   type: ClusterIP
   ports:
@@ -2211,101 +576,9 @@ spec:
     protocol: TCP
     targetPort: 8080
   selector:
-    app.kubernetes.io/name: mender-iot-manager
-
----
-# Source: mender/templates/iot-manager/deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mender-iot-manager
-  namespace: mender
-  labels:
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/part-of: mender
-    app.kubernetes.io/instance: mender
-    app.kubernetes.io/version: "v4.0.1"
-    
-    app.kubernetes.io/name: mender-iot-manager
-    app.kubernetes.io/component: iot-manager
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: mender-iot-manager
-
-  # if deployment is not completed within 10 min, consider it failed,
-  # as result deployment Reason=ProgressDeadlineExceeded
-  # needs to be big enough to rollout to complete
-  progressDeadlineSeconds: 600
-
-  # Rollout upgrade
-  strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 0
-
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/part-of: mender
-        app.kubernetes.io/instance: mender
-        app.kubernetes.io/version: "v4.0.1"
-        app.kubernetes.io/name: mender-iot-manager
-        app.kubernetes.io/component: iot-manager
-    spec:
-      serviceAccountName: default
-      containers:
-      - name: "iot-manager"
-        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/iot-manager:v4.0.1
-        imagePullPolicy: 
-    IfNotPresent
-        resources:
-          limits:
-            cpu: 50m
-            memory: 128Mi
-          requests:
-            cpu: 50m
-            memory: 128Mi
-        args: ["server"]
-        # Readiness/liveness probes
-        readinessProbe:
-          httpGet:
-            path: /api/internal/v1/iot-manager/health
-            port: 8080
-          periodSeconds: 15
-        livenessProbe:
-          httpGet:
-            path: /api/internal/v1/iot-manager/alive
-            port: 8080
-          periodSeconds: 5
-        startupProbe:
-          httpGet:
-            path: /api/internal/v1/iot-manager/alive
-            port: 8080
-          failureThreshold: 36
-          periodSeconds: 5
-    
-        env:
-        - name: IOT_MANAGER_DEVICEAUTH_ADDR
-          value: "http://mender-device-auth:8080"
-        - name: IOT_MANAGER_NATS_URI
-          valueFrom:
-            secretKeyRef:
-              key: NATS_URI
-              name: mender-nats
-        
-    
-        # Set in order, last value for the key will be used in case duplications.
-        envFrom:
-        - prefix: IOT_MANAGER_
-          secretRef:
-            name: mender-mongodb
-
+    app.kubernetes.io/name: mender-deployments
 ---
 # Source: mender/templates/device-auth/service.yaml
-
 apiVersion: v1
 kind: Service
 metadata:
@@ -2328,11 +601,176 @@ spec:
     targetPort: 8080
   selector:
     app.kubernetes.io/name: mender-device-auth
-
+---
+# Source: mender/templates/deviceconfig/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mender-deviceconfig
+  namespace: mender
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: mender
+    app.kubernetes.io/instance: mender
+    app.kubernetes.io/version: "v4.0.1"
+    
+    app.kubernetes.io/name: deviceconfig-svc
+    app.kubernetes.io/component: deviceconfig
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    name: http
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/name: mender-deviceconfig
+---
+# Source: mender/templates/deviceconnect/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mender-deviceconnect
+  namespace: mender
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: mender
+    app.kubernetes.io/instance: mender
+    app.kubernetes.io/version: "v4.0.1"
+    
+    app.kubernetes.io/name: deviceconnect-svc
+    app.kubernetes.io/component: deviceconnect
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    name: http
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/name: mender-deviceconnect
+---
+# Source: mender/templates/gui/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mender-gui
+  namespace: mender
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: mender
+    app.kubernetes.io/instance: mender
+    app.kubernetes.io/version: "v4.0.1"
+    
+    app.kubernetes.io/name: gui-svc
+    app.kubernetes.io/component: gui
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    name: http
+    protocol: TCP
+    targetPort: 8090
+  selector:
+    app.kubernetes.io/name: mender-gui
+---
+# Source: mender/templates/inventory/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mender-inventory
+  namespace: mender
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: mender
+    app.kubernetes.io/instance: mender
+    app.kubernetes.io/version: "v4.0.1"
+    
+    app.kubernetes.io/name: inventory-svc
+    app.kubernetes.io/component: inventory
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    name: http
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/name: mender-inventory
+---
+# Source: mender/templates/iot-manager/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mender-iot-manager
+  namespace: mender
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: mender
+    app.kubernetes.io/instance: mender
+    app.kubernetes.io/version: "v4.0.1"
+    
+    app.kubernetes.io/name: iot-manager-svc
+    app.kubernetes.io/component: iot-manager
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    name: http
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/name: mender-iot-manager
+---
+# Source: mender/templates/useradm/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mender-useradm
+  namespace: mender
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: mender
+    app.kubernetes.io/instance: mender
+    app.kubernetes.io/version: "v4.0.1"
+    
+    app.kubernetes.io/name: useradm-svc
+    app.kubernetes.io/component: useradm
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    name: http
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/name: mender-useradm
+---
+# Source: mender/templates/workflows/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mender-workflows-server
+  namespace: mender
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: mender
+    app.kubernetes.io/instance: mender
+    app.kubernetes.io/version: "v4.0.1"
+    
+    app.kubernetes.io/name: mender-workflows
+    app.kubernetes.io/component: workflows-svc
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    name: http
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/name: mender-workflows-server
 ---
 # Source: mender/templates/api-gateway/deployment.yaml
-
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -2445,34 +883,388 @@ spec:
       - name: api-gateway-traefik
         configMap:
           name: api-gateway-traefik
-
 ---
-# Source: mender/templates/secrets/secret-artifacts-storage.yaml
-
-apiVersion: v1
-kind: Secret
+# Source: mender/templates/create-artifact-worker/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: artifacts-storage
+  name: mender-create-artifact-worker
   namespace: mender
   labels:
-    app.kubernetes.io/name: s3-artifacts
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/instance: mender
-    app.kubernetes.io/component: secrets
     app.kubernetes.io/part-of: mender
-    helm.sh/chart: "mender"
-data:
-  AWS_URI: aHR0cHM6Ly9zMy51cy1lYXN0LTEuYW1hem9uYXdzLmNvbQ==
-  AWS_BUCKET: bWVuZGVyLWFydGlmYWN0cy1udA==
-  STORAGE_BUCKET: bWVuZGVyLWFydGlmYWN0cy1udA==
-  AWS_REGION: dXMtZWFzdC0x
-  AWS_FORCE_PATH_STYLE: ZmFsc2U=
+    app.kubernetes.io/instance: mender
+    app.kubernetes.io/version: "v4.0.1"
+    
+    app.kubernetes.io/name: mender-create-artifact-worker
+    app.kubernetes.io/component: create-artifact-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mender-create-artifact-worker
 
+  # if deployment is not completed within 10 min, consider it failed,
+  # as result deployment Reason=ProgressDeadlineExceeded
+  # needs to be big enough to rollout to complete
+  progressDeadlineSeconds: 600
+
+  # Rollout upgrade
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 0
+
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mender-create-artifact-worker
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: mender
+        app.kubernetes.io/instance: mender
+        app.kubernetes.io/version: "v4.0.1"
+        
+        app.kubernetes.io/component: create-artifact-worker
+    spec:
+
+      containers:
+      - name: create-artifact-worker
+        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/create-artifact-worker:v4.0.1
+        imagePullPolicy: IfNotPresent
+#
+        resources:
+          limits:
+            cpu: 100m
+            memory: 1024Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        command: ["workflows", "--config", "/etc/workflows/config.yaml", "worker"]
+
+        # Supported configuration settings: https://github.com/mendersoftware/workflows/blob/master/config.yaml
+        # Set in order, last value for the key will be used in case duplications.
+        env:
+        # NATS uri
+        - name: WORKFLOWS_MENDER_URL
+          value: "https://mender.gmaddaloni.com"
+        - name: CREATE_ARTIFACT_GATEWAY_URL
+          value: https://mender.gmaddaloni.com
+        - name: CREATE_ARTIFACT_SKIPVERIFY
+          value: "1"
+        - name: CREATE_ARTIFACT_DEPLOYMENTS_URL
+          value: http://mender-deployments:8080
+        
+        envFrom:
+        - prefix: WORKFLOWS_
+          secretRef:
+            name: mender-mongodb
+        - prefix: WORKFLOWS_
+          secretRef:
+            name: mender-nats
 ---
-# Source: mender/templates/deviceconnect/service.yaml
+# Source: mender/templates/deployments/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mender-deployments
+  namespace: mender
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: mender
+    app.kubernetes.io/instance: mender
+    app.kubernetes.io/version: "v4.0.1"
+    
+    app.kubernetes.io/name: mender-deployments
+    app.kubernetes.io/component: deployments
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mender-deployments
 
-apiVersion: v1
-kind: Service
+  # if deployment is not completed within 10 min, consider it failed,
+  # as result deployment Reason=ProgressDeadlineExceeded
+  # needs to be big enough to rollout to complete
+  progressDeadlineSeconds: 600
+
+  # Rollout upgrade
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 0
+  # Rollout upgrade
+  strategy:
+    rollingUpdate:
+    maxSurge: 25%
+    maxUnavailable: 0
+
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: mender
+        app.kubernetes.io/instance: mender
+        app.kubernetes.io/version: "v4.0.1"
+        app.kubernetes.io/name: mender-deployments
+        app.kubernetes.io/component: deployments
+    spec:
+      serviceAccountName: mender-sa
+      containers:
+      - name: "deployments"
+        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/deployments:v4.0.1
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: 300m
+            memory: 128Mi
+          requests:
+            cpu: 300m
+            memory: 64Mi
+        args: ["server"]
+        # Readiness/liveness probes
+        readinessProbe:
+          httpGet:
+            path: /api/internal/v1/deployments/health
+            port: 8080
+          periodSeconds: 15
+        livenessProbe:
+          httpGet:
+            path: /api/internal/v1/deployments/alive
+            port: 8080
+          periodSeconds: 5
+        startupProbe:
+          httpGet:
+            path: /api/internal/v1/deployments/alive
+            port: 8080
+          failureThreshold: 36
+          periodSeconds: 5
+    
+        env:
+        - name: DEPLOYMENTS_STORAGE_DEFAULT
+          value: "aws"
+        - name: DEPLOYMENTS_INVENTORY_ADDR
+          value: http://mender-inventory:8080
+        - name: DEPLOYMENTS_MIDDLEWARE
+          value: "prod"
+        - name: DEPLOYMENTS_AWS_TAG_ARTIFACT
+          value: 
+        - name: DEPLOYMENTS_STORAGE_ENABLE_DIRECT_UPLOAD
+          value: "true"
+        - name: DEPLOYMENTS_STORAGE_PROXY_URI
+          value: "https://mender.gmaddaloni.com"
+        - name: DEPLOYMENTS_STORAGE_MAX_IMAGE_SIZE
+          value: "10737418240"
+        - name: DEPLOYMENTS_STORAGE_MAX_GENERATE_DATA_SIZE
+          value: "536870912"
+        
+    
+        # Supported configuration settings: https://github.com/mendersoftware/deployments/blob/master/config.yaml
+        # Set in order, last value for the key will be used in case duplications.
+        envFrom:
+        - prefix: DEPLOYMENTS_
+          secretRef:
+            name: mender-mongodb
+        - prefix: DEPLOYMENTS_
+          secretRef:
+            name: artifacts-storage
+---
+# Source: mender/templates/device-auth/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mender-device-auth
+  namespace: mender
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: mender
+    app.kubernetes.io/instance: mender
+    app.kubernetes.io/version: "v4.0.1"
+    
+    app.kubernetes.io/name: mender-device-auth
+    app.kubernetes.io/component: device-auth
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mender-device-auth
+
+  # if deployment is not completed within 10 min, consider it failed,
+  # as result deployment Reason=ProgressDeadlineExceeded
+  # needs to be big enough to rollout to complete
+  progressDeadlineSeconds: 600
+
+  # Rollout upgrade
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 0
+
+  template:
+    
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: mender
+        app.kubernetes.io/instance: mender
+        app.kubernetes.io/version: "v4.0.1"
+        app.kubernetes.io/name: mender-device-auth
+        app.kubernetes.io/component: device-auth
+    spec:
+      serviceAccountName: default
+      containers:
+      - name: "device-auth"
+    
+        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/deviceauth:v4.0.1
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: 350m
+            memory: 128Mi
+          requests:
+            cpu: 350m
+            memory: 128Mi
+        args: ["server"]
+        # Readiness/liveness probes
+        readinessProbe:
+          httpGet:
+            path: /api/internal/v1/devauth/health
+            port: 8080
+          periodSeconds: 15
+        livenessProbe:
+          httpGet:
+            path: /api/internal/v1/devauth/alive
+            port: 8080
+          periodSeconds: 5
+        startupProbe:
+          httpGet:
+            path: /api/internal/v1/devauth/alive
+            port: 8080
+          failureThreshold: 36
+          periodSeconds: 5
+        volumeMounts:
+        - name: rsa
+          mountPath: "/etc/deviceauth/rsa/"
+          readOnly: true
+    
+        env:
+        - name: DEVICEAUTH_INVENTORY_ADDR
+          value: http://mender-inventory:8080
+        - name: DEVICEAUTH_IOT_MANAGER_ADDR
+          value: http://mender-iot-manager:8080
+        - name: DEVICEAUTH_ORCHESTRATOR_ADDR
+          value: http://mender-workflows-server:8080
+        - name: DEVICEAUTH_SERVER_PRIV_KEY_PATH
+          value: /etc/deviceauth/rsa/private.pem
+        - name: DEVICEAUTH_JWT_ISSUER
+          value: "Mender"
+        - name: DEVICEAUTH_JWT_EXP_TIMEOUT
+          value: "604800"
+        - name: DEVICEAUTH_MIDDLEWARE
+          value: "prod"
+        # Enable audit logging
+        
+    
+        # Supported configuration settings: https://github.com/mendersoftware/deviceauth/blob/master/config.yaml
+        # Set in order, last value for the key will be used in case duplications.
+        envFrom:
+        - prefix: DEVICEAUTH_
+          secretRef:
+            name: mender-mongodb
+      volumes:
+      - name: rsa
+        secret:
+          secretName: rsa-device-auth
+---
+# Source: mender/templates/deviceconfig/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mender-deviceconfig
+  namespace: mender
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: mender
+    app.kubernetes.io/instance: mender
+    app.kubernetes.io/version: "v4.0.1"
+    
+    app.kubernetes.io/name: mender-deviceconfig
+    app.kubernetes.io/component: deviceconfig
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mender-deviceconfig
+
+  # if deployment is not completed within 10 min, consider it failed,
+  # as result deployment Reason=ProgressDeadlineExceeded
+  # needs to be big enough to rollout to complete
+  progressDeadlineSeconds: 600
+
+  # Rollout upgrade
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 0
+
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: mender
+        app.kubernetes.io/instance: mender
+        app.kubernetes.io/version: "v4.0.1"
+        app.kubernetes.io/name: mender-deviceconfig
+        app.kubernetes.io/component: deviceconfig
+    spec:
+      serviceAccountName: default
+    
+      containers:
+      - name: "deviceconfig"
+        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/deviceconfig:v4.0.1
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        args: ["server"]
+        # Readiness/liveness probes
+        readinessProbe:
+          httpGet:
+            path: /api/internal/v1/deviceconfig/health
+            port: 8080
+          periodSeconds: 15
+        livenessProbe:
+          httpGet:
+            path: /api/internal/v1/deviceconfig/alive
+            port: 8080
+          periodSeconds: 5
+        startupProbe:
+          httpGet:
+            path: /api/internal/v1/deviceconfig/alive
+            port: 8080
+          failureThreshold: 36
+          periodSeconds: 5
+    
+        env:
+        # Enable audit logging
+        # Workflows orchestrator address
+        - name: DEVICECONFIG_WORKFLOWS_URL
+          value: "http://mender-workflows-server:8080"
+        
+    
+        # Supported configuration settings: https://github.com/mendersoftware/deviceconfig/blob/master/config.yaml
+        # Set in order, last value for the key will be used in case duplications.
+        envFrom:
+        - prefix: DEVICECONFIG_
+          secretRef:
+            name: mender-mongodb
+---
+# Source: mender/templates/deviceconnect/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: mender-deviceconnect
   namespace: mender
@@ -2482,123 +1274,102 @@ metadata:
     app.kubernetes.io/instance: mender
     app.kubernetes.io/version: "v4.0.1"
     
-    app.kubernetes.io/name: deviceconnect-svc
+    app.kubernetes.io/name: mender-deviceconnect
     app.kubernetes.io/component: deviceconnect
 spec:
-  type: ClusterIP
-  ports:
-  - port: 8080
-    name: http
-    protocol: TCP
-    targetPort: 8080
+  replicas: 1
   selector:
-    app.kubernetes.io/name: mender-deviceconnect
+    matchLabels:
+      app.kubernetes.io/name: mender-deviceconnect
 
----
-# Source: mender/templates/deployments/cronjob.yaml
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: mender-deployments-storage-daemon
-  namespace: mender
-spec:
-  schedule: "15 * * * *"
-  concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 1
-  failedJobsHistoryLimit: 1
-  jobTemplate:
-    spec:
-      template:
-        metadata:
-          labels:
-            app.kubernetes.io/name: mender-deployments-storage-daemon
+  # if deployment is not completed within 10 min, consider it failed,
+  # as result deployment Reason=ProgressDeadlineExceeded
+  # needs to be big enough to rollout to complete
+  progressDeadlineSeconds: 600
 
-        spec:
-          serviceAccountName: mender-sa
-          containers:
-          - name: deployments-storage-daemon
-            image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/deployments:v4.0.1
-            imagePullPolicy: 
-IfNotPresent
-            args: ["storage-daemon", "--time-jitter=3s"]
-            env:
-            - name: DEPLOYMENTS_STORAGE_DEFAULT
-              value: "aws"
-            envFrom:
-            - prefix: DEPLOYMENTS_
-              secretRef:
-                name: mender-mongodb
-            - prefix: DEPLOYMENTS_
-              secretRef:
-                name: artifacts-storage
-          restartPolicy: Never
+  # Rollout upgrade
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 0
 
----
-# Source: mender/templates/inventory/job.yaml
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: mender-inventory-migration
-  namespace: mender
-  annotations:
-    "helm.sh/hook": pre-install,pre-upgrade
-    "helm.sh/hook-weight": "10"
-    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
-  labels:
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/part-of: mender
-    app.kubernetes.io/instance: mender
-    app.kubernetes.io/version: "v4.0.1"
-    app.kubernetes.io/name: mender-inventory
-    app.kubernetes.io/component: inventory
-spec:
-  backoffLimit: 5
   template:
-    
     metadata:
       labels:
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/part-of: mender
         app.kubernetes.io/instance: mender
         app.kubernetes.io/version: "v4.0.1"
-        app.kubernetes.io/name: mender-inventory
-        app.kubernetes.io/component: inventory
+        app.kubernetes.io/name: mender-deviceconnect
+        app.kubernetes.io/component: deviceconnect
     spec:
       serviceAccountName: default
-      restartPolicy: "Never"
       containers:
-      - name: "inventory-migration"
-        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/inventory:v4.0.1
-        imagePullPolicy: 
-    IfNotPresent
+      - name: "deviceconnect"
+        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/deviceconnect:v4.0.1
+        imagePullPolicy: IfNotPresent
         resources:
           limits:
-            cpu: 300m
+            cpu: 100m
             memory: 128Mi
           requests:
-            cpu: 300m
+            cpu: 100m
             memory: 128Mi
-        args: ["migrate"]
+        args: ["server"]
+        # Readiness/liveness probes
+        readinessProbe:
+          httpGet:
+            path: /api/internal/v1/deviceconnect/health
+            port: 8080
+          periodSeconds: 15
+        livenessProbe:
+          httpGet:
+            path: /api/internal/v1/deviceconnect/alive
+            port: 8080
+          periodSeconds: 5
+        startupProbe:
+          httpGet:
+            path: /api/internal/v1/deviceconnect/alive
+            port: 8080
+          failureThreshold: 36
+          periodSeconds: 5
     
         env:
-        - name: INVENTORY_DEVICEMONITOR_ADDR
-          value: "http://mender-devicemonitor:8080"
-        - name: INVENTORY_ORCHESTRATOR_ADDR
-          value: "http://mender-workflows-server:8080"
-        - name: INVENTORY_MIDDLEWARE
-          value: "prod"
-        - name: INVENTORY_NATS_URI
+        # NATS uri
+        - name: DEVICECONNECT_NATS_URI
           valueFrom:
             secretKeyRef:
               key: NATS_URI
               name: mender-nats
+        # Enable audit logging
+    
+        # Graceful shutdown timeout
+        - name: DEVICECONNECT_GRACEFUL_SHUTDOWN_TIMEOUT
+          value: 60s
+    
+        # Workflows orchestrator address
+        - name: DEVICECONNECT_WORKFLOWS_URL
+          value: "http://mender-workflows-server:8080"
+    
+        - name: DEVICECONNECT_WS_ALLOWED_ORIGINS
+          value: >-
+            mender.gmaddaloni.com https://mender.gmaddaloni.com wss://mender.gmaddaloni.com
         
     
+        # Supported configuration settings: https://github.com/mendersoftware/deviceconnect/blob/master/config.yaml
+        # Set in order, last value for the key will be used in case duplications.
         envFrom:
-        - prefix: INVENTORY_
+        - prefix: DEVICECONNECT_
           secretRef:
             name: mender-mongodb
-
+        # Graceful shutdown
+        lifecycle:
+          preStop:
+            httpGet:
+              port: 8080
+              path: api/internal/v1/deviceconnect/shutdown
+      # Termination grace period should be higher than graceful shutdown timeout
+      terminationGracePeriodSeconds: 65
 ---
 # Source: mender/templates/gui/deployment.yaml
 apiVersion: apps/v1
@@ -2647,8 +1418,7 @@ spec:
       containers:
       - name: gui
         image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/gui:v4.0.1
-        imagePullPolicy: 
-IfNotPresent
+        imagePullPolicy: IfNotPresent
         resources:
           limits:
             cpu: 20m
@@ -2680,13 +1450,190 @@ IfNotPresent
           value: "true"
         - name: HAVE_DEVICECONFIG
           value: "true"
-        
-
 ---
-# Source: mender/templates/useradm/service.yaml
+# Source: mender/templates/inventory/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mender-inventory
+  namespace: mender
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: mender
+    app.kubernetes.io/instance: mender
+    app.kubernetes.io/version: "v4.0.1"
+    
+    app.kubernetes.io/name: mender-inventory
+    app.kubernetes.io/component: inventory
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mender-inventory
 
-apiVersion: v1
-kind: Service
+  # if deployment is not completed within 10 min, consider it failed,
+  # as result deployment Reason=ProgressDeadlineExceeded
+  # needs to be big enough to rollout to complete
+  progressDeadlineSeconds: 600
+
+  # Rollout upgrade
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 0
+
+  template:
+    
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: mender
+        app.kubernetes.io/instance: mender
+        app.kubernetes.io/version: "v4.0.1"
+        app.kubernetes.io/name: mender-inventory
+        app.kubernetes.io/component: inventory
+    spec:
+      serviceAccountName: default
+      containers:
+      - name: "inventory"
+        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/inventory:v4.0.1
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: 300m
+            memory: 128Mi
+          requests:
+            cpu: 300m
+            memory: 128Mi
+        args: ["server"]
+        # Readiness/liveness probes
+        readinessProbe:
+          httpGet:
+            path: /api/internal/v1/inventory/health
+            port: 8080
+          periodSeconds: 15
+        livenessProbe:
+          httpGet:
+            path: /api/internal/v1/inventory/alive
+            port: 8080
+          periodSeconds: 5
+        startupProbe:
+          httpGet:
+            path: /api/internal/v1/inventory/alive
+            port: 8080
+          failureThreshold: 36
+          periodSeconds: 5
+    
+        env:
+        - name: INVENTORY_DEVICEMONITOR_ADDR
+          value: "http://mender-devicemonitor:8080"
+        - name: INVENTORY_ORCHESTRATOR_ADDR
+          value: "http://mender-workflows-server:8080"
+        - name: INVENTORY_MIDDLEWARE
+          value: "prod"
+        - name: INVENTORY_NATS_URI
+          valueFrom:
+            secretKeyRef:
+              key: NATS_URI
+              name: mender-nats
+        
+    
+        envFrom:
+        - prefix: INVENTORY_
+          secretRef:
+            name: mender-mongodb
+---
+# Source: mender/templates/iot-manager/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mender-iot-manager
+  namespace: mender
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: mender
+    app.kubernetes.io/instance: mender
+    app.kubernetes.io/version: "v4.0.1"
+    
+    app.kubernetes.io/name: mender-iot-manager
+    app.kubernetes.io/component: iot-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mender-iot-manager
+
+  # if deployment is not completed within 10 min, consider it failed,
+  # as result deployment Reason=ProgressDeadlineExceeded
+  # needs to be big enough to rollout to complete
+  progressDeadlineSeconds: 600
+
+  # Rollout upgrade
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 0
+
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: mender
+        app.kubernetes.io/instance: mender
+        app.kubernetes.io/version: "v4.0.1"
+        app.kubernetes.io/name: mender-iot-manager
+        app.kubernetes.io/component: iot-manager
+    spec:
+      serviceAccountName: default
+      containers:
+      - name: "iot-manager"
+        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/iot-manager:v4.0.1
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: 50m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 128Mi
+        args: ["server"]
+        # Readiness/liveness probes
+        readinessProbe:
+          httpGet:
+            path: /api/internal/v1/iot-manager/health
+            port: 8080
+          periodSeconds: 15
+        livenessProbe:
+          httpGet:
+            path: /api/internal/v1/iot-manager/alive
+            port: 8080
+          periodSeconds: 5
+        startupProbe:
+          httpGet:
+            path: /api/internal/v1/iot-manager/alive
+            port: 8080
+          failureThreshold: 36
+          periodSeconds: 5
+    
+        env:
+        - name: IOT_MANAGER_DEVICEAUTH_ADDR
+          value: "http://mender-device-auth:8080"
+        - name: IOT_MANAGER_NATS_URI
+          valueFrom:
+            secretKeyRef:
+              key: NATS_URI
+              name: mender-nats
+        
+    
+        # Set in order, last value for the key will be used in case duplications.
+        envFrom:
+        - prefix: IOT_MANAGER_
+          secretRef:
+            name: mender-mongodb
+---
+# Source: mender/templates/useradm/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: mender-useradm
   namespace: mender
@@ -2696,14 +1643,987 @@ metadata:
     app.kubernetes.io/instance: mender
     app.kubernetes.io/version: "v4.0.1"
     
-    app.kubernetes.io/name: useradm-svc
+    app.kubernetes.io/name: mender-useradm
     app.kubernetes.io/component: useradm
 spec:
-  type: ClusterIP
-  ports:
-  - port: 8080
-    name: http
-    protocol: TCP
-    targetPort: 8080
+  replicas: 1
   selector:
+    matchLabels:
+      app.kubernetes.io/name: mender-useradm
+
+  # if deployment is not completed within 10 min, consider it failed,
+  # as result deployment Reason=ProgressDeadlineExceeded
+  # needs to be big enough to rollout to complete
+
+  progressDeadlineSeconds: 600
+
+  # Rollout upgrade
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 0
+
+  template:
+    
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: mender
+        app.kubernetes.io/instance: mender
+        app.kubernetes.io/version: "v4.0.1"
+        app.kubernetes.io/name: mender-useradm
+        app.kubernetes.io/component: useradm
+    spec:
+      serviceAccountName: default
+      containers:
+      - name: "useradm"
+        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/useradm:v4.0.1
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: 150m
+            memory: 128Mi
+          requests:
+            cpu: 150m
+            memory: 64Mi
+        args: ["server"]
+        # Readiness/liveness probes
+        readinessProbe:
+          httpGet:
+            path: /api/internal/v1/useradm/health
+            port: 8080
+          periodSeconds: 15
+        livenessProbe:
+          httpGet:
+            path: /api/internal/v1/useradm/alive
+            port: 8080
+          periodSeconds: 5
+        startupProbe:
+          httpGet:
+            path: /api/internal/v1/useradm/alive
+            port: 8080
+          failureThreshold: 36
+          periodSeconds: 5
+        volumeMounts:
+        - name: rsa
+          mountPath: "/etc/useradm/rsa/"
+          readOnly: true
+    
+        env:
+        - name: USERADM_INVENTORY_ADDR
+          value: "http://mender-inventory:8080"
+        - name: USERADM_ORCHESTRATOR_ADDR
+          value: "http://mender-workflows-server:8080"
+        - name: USERADM_MIDDLEWARE
+          value: "prod"
+        - name: USERADM_PROXY_COUNT
+          value: "2"
+        - name: USERADM_JWT_ISSUER
+          value: "Mender Users"
+        - name: USERADM_JWT_EXP_TIMEOUT
+          value: "604800"
+        - name: USERADM_BASE_URL
+          value: "https://mender.gmaddaloni.com"
+        - name: USERADM_SERVER_PRIV_KEY_PATH
+          value: /etc/useradm/rsa/private.pem
+        - name: USERADM_TOTP_ISSUER
+          value: "Mender"
+        
+    
+        # Supported configuration settings: https://github.com/mendersoftware/useradm/blob/master/config.yaml
+        # Set in order, last value for the key will be used in case duplications.
+        envFrom:
+        - prefix: USERADM_
+          secretRef:
+            name: mender-mongodb
+      volumes:
+      - name: rsa
+        secret:
+          secretName: rsa-useradm
+---
+# Source: mender/templates/workflows/deployment-server.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mender-workflows-server
+  namespace: mender
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: mender
+    app.kubernetes.io/instance: mender
+    app.kubernetes.io/version: "v4.0.1"
+    
+    app.kubernetes.io/name: mender-workflows-server
+    app.kubernetes.io/component: workflows
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mender-workflows-server
+
+  # if deployment is not completed within 10 min, consider it failed,
+  # as result deployment Reason=ProgressDeadlineExceeded
+  # needs to be big enough to rollout to complete
+  progressDeadlineSeconds: 600
+
+  # Rollout upgrade
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 0
+
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: mender
+        app.kubernetes.io/instance: mender
+        app.kubernetes.io/version: "v4.0.1"
+        app.kubernetes.io/name: mender-workflows-server
+        app.kubernetes.io/component: workflows-server
+    spec:
+      serviceAccountName: default
+      containers:
+      - name: "workflows"
+        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/workflows:v4.0.1
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
+    
+        args:
+          - server
+        # Readiness/liveness probes
+        readinessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8080
+          periodSeconds: 15
+        livenessProbe:
+          httpGet:
+            path: /status
+            port: 8080
+          periodSeconds: 5
+        startupProbe:
+          httpGet:
+            path: /status
+            port: 8080
+          failureThreshold: 36
+          periodSeconds: 5
+    
+        env:
+        # NATS uri
+        - name: AUDITLOGS_ADDR
+          value: mender-auditlogs:8080
+        - name: DEPLOYMENTS_ADDR
+          value: mender-deployments:8080
+        - name: DEVICEAUTH_ADDR
+          value: mender-device-auth:8080
+        - name: DEVICECONFIG_ADDR
+          value: mender-deviceconfig:8080
+        - name: DEVICECONNECT_ADDR
+          value: mender-deviceconnect:8080
+        - name: DEVICEMONITOR_ADDR
+          value: mender-devicemonitor:8080
+        - name: INVENTORY_ADDR
+          value: mender-inventory:8080
+        - name: IOT_MANAGER_ADDR
+          value: mender-iot-manager:8080
+        - name: TENANTADM_ADDR
+          value: mender-tenantadm:8080
+        - name: USERADM_ADDR
+          value: mender-useradm:8080
+        - name: WORKFLOWS_SERVER_ADDR
+          value: mender-workflows-server:8080
+        - name: WORKFLOWS_NATS_URI
+          valueFrom:
+            secretKeyRef:
+              key: NATS_URI
+              name: mender-nats
+        
+    
+        # Supported configuration settings: https://github.com/mendersoftware/workflows/blob/master/config.yaml
+        # Set in order, last value for the key will be used in case duplications.
+        envFrom:
+        - prefix: WORKFLOWS_
+          secretRef:
+            name: mender-mongodb
+---
+# Source: mender/templates/workflows/deployment-worker.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mender-workflows-worker
+  namespace: mender
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: mender
+    app.kubernetes.io/instance: mender
+    app.kubernetes.io/version: "v4.0.1"
+    
+    app.kubernetes.io/name: mender-workflows-worker
+    app.kubernetes.io/component: workflows
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mender-workflows-worker
+
+  # if deployment is not completed within 10 min, consider it failed,
+  # as result deployment Reason=ProgressDeadlineExceeded
+  # needs to be big enough to rollout to complete
+  progressDeadlineSeconds: 600
+
+  # Rollout upgrade
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 0
+
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: mender
+        app.kubernetes.io/instance: mender
+        app.kubernetes.io/version: "v4.0.1"
+        app.kubernetes.io/name: mender-workflows-worker
+        app.kubernetes.io/component: workflows-worker
+    spec:
+      serviceAccountName: default
+      containers:
+      - name: "workflows"
+        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/workflows:v4.0.1
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
+    
+        args:
+          - worker
+          - --excluded-workflows
+          - generate_artifact
+    
+        env:
+        # NATS uri
+        - name: AUDITLOGS_ADDR
+          value: mender-auditlogs:8080
+        - name: DEPLOYMENTS_ADDR
+          value: mender-deployments:8080
+        - name: DEVICEAUTH_ADDR
+          value: mender-device-auth:8080
+        - name: DEVICECONFIG_ADDR
+          value: mender-deviceconfig:8080
+        - name: DEVICECONNECT_ADDR
+          value: mender-deviceconnect:8080
+        - name: DEVICEMONITOR_ADDR
+          value: mender-devicemonitor:8080
+        - name: INVENTORY_ADDR
+          value: mender-inventory:8080
+        - name: IOT_MANAGER_ADDR
+          value: mender-iot-manager:8080
+        - name: TENANTADM_ADDR
+          value: mender-tenantadm:8080
+        - name: USERADM_ADDR
+          value: mender-useradm:8080
+        - name: WORKFLOWS_SERVER_ADDR
+          value: mender-workflows-server:8080
+        - name: WORKFLOWS_NATS_URI
+          valueFrom:
+            secretKeyRef:
+              key: NATS_URI
+              name: mender-nats
+        - name: WORKFLOWS_MENDER_URL
+          value: "https://mender.gmaddaloni.com"
+        - name: HAVE_DEVICECONNECT
+          value: "true"
+        - name: HAVE_DEVICECONFIG
+          value: "true"
+        
+    
+        # Supported configuration settings: https://github.com/mendersoftware/workflows/blob/master/config.yaml
+        # Set in order, last value for the key will be used in case duplications.
+        envFrom:
+        - prefix: WORKFLOWS_
+          secretRef:
+            name: mender-mongodb
+        - prefix: WORKFLOWS_
+          secretRef:
+            name: smtp
+---
+# Source: mender/templates/deployments/cronjob.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mender-deployments-storage-daemon
+  namespace: mender
+spec:
+  schedule: "15 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: mender-deployments-storage-daemon
+
+        spec:
+          serviceAccountName: mender-sa
+          containers:
+          - name: deployments-storage-daemon
+            image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/deployments:v4.0.1
+            imagePullPolicy: IfNotPresent
+            args: ["storage-daemon", "--time-jitter=3s"]
+            env:
+            - name: DEPLOYMENTS_STORAGE_DEFAULT
+              value: "aws"
+            envFrom:
+            - prefix: DEPLOYMENTS_
+              secretRef:
+                name: mender-mongodb
+            - prefix: DEPLOYMENTS_
+              secretRef:
+                name: artifacts-storage
+          restartPolicy: Never
+---
+# Source: mender/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mender-ingress
+  namespace: mender
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: mender
+    app.kubernetes.io/instance: mender
+    app.kubernetes.io/version: "v4.0.1"
+    
+  annotations:
+    alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig":{
+      "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:194722422560:certificate/9a221dd3-2a8a-46bd-ab80-ec8839b6bbf8
+    alb.ingress.kubernetes.io/group.name: mender
+    alb.ingress.kubernetes.io/healthcheck-path: /ui/
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/load-balancer-attributes: routing.http2.enabled=true,idle_timeout.timeout_seconds=600
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+spec:
+  ingressClassName: alb
+  tls:
+    - hosts:
+        - mender.example.com
+      secretName: mender-ingress-tls
+  rules:
+    - host: "mender.gmaddaloni.com"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ssl-redirect
+                port:
+                  name: use-annotation
+          - path: /ui/
+            pathType: Prefix
+            backend:
+              service:
+                name: mender-gateway
+                port:
+                  name: 80
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mender-api-gateway
+                port:
+                  number: 80
+---
+# Source: mender/templates/secrets/secret-mongodb-common-prerelease.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name:  mongodb-common-prerelease
+  namespace: mender
+  labels:
+    app.kubernetes.io/name: mongodb-common
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/instance: mender
+    app.kubernetes.io/component: secrets
+    app.kubernetes.io/part-of: mender
+    helm.sh/chart: "mender"
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-11"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
+type: Opaque
+data:
+  MONGO: ""
+  MONGO_URL: ""
+---
+# Source: mender/templates/deployments/job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mender-deployments-migration
+  namespace: mender
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "10"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: mender
+    app.kubernetes.io/instance: mender
+    app.kubernetes.io/version: "v4.0.1"
+    app.kubernetes.io/name: mender-deployments
+    app.kubernetes.io/component: deployments
+spec:
+  backoffLimit: 5
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: mender
+        app.kubernetes.io/instance: mender
+        app.kubernetes.io/version: "v4.0.1"
+        app.kubernetes.io/name: mender-deployments
+        app.kubernetes.io/component: deployments
+    spec:
+      serviceAccountName: mender-sa
+      restartPolicy: "Never"
+      containers:
+      - name: "deployments-migration"
+        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/deployments:v4.0.1
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: 300m
+            memory: 128Mi
+          requests:
+            cpu: 300m
+            memory: 64Mi
+        args: ["migrate"]
+    
+        env:
+        - name: DEPLOYMENTS_STORAGE_DEFAULT
+          value: "aws"
+        - name: DEPLOYMENTS_INVENTORY_ADDR
+          value: http://mender-inventory:8080
+        - name: DEPLOYMENTS_MIDDLEWARE
+          value: "prod"
+        - name: DEPLOYMENTS_AWS_TAG_ARTIFACT
+          value: 
+        - name: DEPLOYMENTS_STORAGE_ENABLE_DIRECT_UPLOAD
+          value: "true"
+        - name: DEPLOYMENTS_STORAGE_PROXY_URI
+          value: "https://mender.gmaddaloni.com"
+        - name: DEPLOYMENTS_STORAGE_MAX_IMAGE_SIZE
+          value: "10737418240"
+        - name: DEPLOYMENTS_STORAGE_MAX_GENERATE_DATA_SIZE
+          value: "536870912"
+        
+    
+        # Supported configuration settings: https://github.com/mendersoftware/deployments/blob/master/config.yaml
+        # Set in order, last value for the key will be used in case duplications.
+        envFrom:
+        - prefix: DEPLOYMENTS_
+          secretRef:
+            name: mender-mongodb
+---
+# Source: mender/templates/device-auth/job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mender-deviceauth-migration
+  namespace: mender
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "10"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: mender
+    app.kubernetes.io/instance: mender
+    app.kubernetes.io/version: "v4.0.1"
+    app.kubernetes.io/name: mender-deviceauth
+    app.kubernetes.io/component: deviceauth
+spec:
+  backoffLimit: 5
+  template:
+    
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: mender
+        app.kubernetes.io/instance: mender
+        app.kubernetes.io/version: "v4.0.1"
+        app.kubernetes.io/name: mender-deviceauth
+        app.kubernetes.io/component: deviceauth
+    spec:
+      serviceAccountName: default
+      restartPolicy: "Never"
+      containers:
+      - name: "device-auth-migration"
+    
+        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/deviceauth:v4.0.1
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: 350m
+            memory: 128Mi
+          requests:
+            cpu: 350m
+            memory: 128Mi
+        args: ["migrate"]
+    
+        env:
+        - name: DEVICEAUTH_INVENTORY_ADDR
+          value: http://mender-inventory:8080
+        - name: DEVICEAUTH_IOT_MANAGER_ADDR
+          value: http://mender-iot-manager:8080
+        - name: DEVICEAUTH_ORCHESTRATOR_ADDR
+          value: http://mender-workflows-server:8080
+        - name: DEVICEAUTH_SERVER_PRIV_KEY_PATH
+          value: /etc/deviceauth/rsa/private.pem
+        - name: DEVICEAUTH_JWT_ISSUER
+          value: "Mender"
+        - name: DEVICEAUTH_JWT_EXP_TIMEOUT
+          value: "604800"
+        - name: DEVICEAUTH_MIDDLEWARE
+          value: "prod"
+        # Enable audit logging
+        
+    
+        # Supported configuration settings: https://github.com/mendersoftware/deviceauth/blob/master/config.yaml
+        # Set in order, last value for the key will be used in case duplications.
+        envFrom:
+        - prefix: DEVICEAUTH_
+          secretRef:
+            name: mender-mongodb
+---
+# Source: mender/templates/deviceconfig/job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mender-deviceconfig-migration
+  namespace: mender
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "10"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: mender
+    app.kubernetes.io/instance: mender
+    app.kubernetes.io/version: "v4.0.1"
+    app.kubernetes.io/name: mender-deviceconfig
+    app.kubernetes.io/component: deviceconfig
+spec:
+  backoffLimit: 5
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: mender
+        app.kubernetes.io/instance: mender
+        app.kubernetes.io/version: "v4.0.1"
+        app.kubernetes.io/name: mender-deviceconfig
+        app.kubernetes.io/component: deviceconfig
+    spec:
+      serviceAccountName: default
+      restartPolicy: "Never"
+    
+      containers:
+      - name: "deviceconfig-migration"
+        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/deviceconfig:v4.0.1
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        args: ["migrate"]
+    
+        env:
+        # Enable audit logging
+        # Workflows orchestrator address
+        - name: DEVICECONFIG_WORKFLOWS_URL
+          value: "http://mender-workflows-server:8080"
+        
+    
+        # Supported configuration settings: https://github.com/mendersoftware/deviceconfig/blob/master/config.yaml
+        # Set in order, last value for the key will be used in case duplications.
+        envFrom:
+        - prefix: DEVICECONFIG_
+          secretRef:
+            name: mender-mongodb
+---
+# Source: mender/templates/deviceconnect/job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mender-deviceconnect-migration
+  namespace: mender
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "10"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: mender
+    app.kubernetes.io/instance: mender
+    app.kubernetes.io/version: "v4.0.1"
+    app.kubernetes.io/name: mender-deviceconnect
+    app.kubernetes.io/component: deviceconnect
+spec:
+  backoffLimit: 5
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: mender
+        app.kubernetes.io/instance: mender
+        app.kubernetes.io/version: "v4.0.1"
+        app.kubernetes.io/name: mender-deviceconnect
+        app.kubernetes.io/component: deviceconnect
+    spec:
+      serviceAccountName: default
+      restartPolicy: "Never"
+      containers:
+      - name: "deviceconnect-migration"
+        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/deviceconnect:v4.0.1
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        args: ["migrate"]
+    
+        env:
+        # NATS uri
+        - name: DEVICECONNECT_NATS_URI
+          valueFrom:
+            secretKeyRef:
+              key: NATS_URI
+              name: mender-nats
+        # Enable audit logging
+    
+        # Graceful shutdown timeout
+        - name: DEVICECONNECT_GRACEFUL_SHUTDOWN_TIMEOUT
+          value: 60s
+    
+        # Workflows orchestrator address
+        - name: DEVICECONNECT_WORKFLOWS_URL
+          value: "http://mender-workflows-server:8080"
+    
+        - name: DEVICECONNECT_WS_ALLOWED_ORIGINS
+          value: >-
+            mender.gmaddaloni.com https://mender.gmaddaloni.com wss://mender.gmaddaloni.com
+        
+    
+        # Supported configuration settings: https://github.com/mendersoftware/deviceconnect/blob/master/config.yaml
+        # Set in order, last value for the key will be used in case duplications.
+        envFrom:
+        - prefix: DEVICECONNECT_
+          secretRef:
+            name: mender-mongodb
+---
+# Source: mender/templates/inventory/job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mender-inventory-migration
+  namespace: mender
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "10"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: mender
+    app.kubernetes.io/instance: mender
+    app.kubernetes.io/version: "v4.0.1"
+    app.kubernetes.io/name: mender-inventory
+    app.kubernetes.io/component: inventory
+spec:
+  backoffLimit: 5
+  template:
+    
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: mender
+        app.kubernetes.io/instance: mender
+        app.kubernetes.io/version: "v4.0.1"
+        app.kubernetes.io/name: mender-inventory
+        app.kubernetes.io/component: inventory
+    spec:
+      serviceAccountName: default
+      restartPolicy: "Never"
+      containers:
+      - name: "inventory-migration"
+        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/inventory:v4.0.1
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: 300m
+            memory: 128Mi
+          requests:
+            cpu: 300m
+            memory: 128Mi
+        args: ["migrate"]
+    
+        env:
+        - name: INVENTORY_DEVICEMONITOR_ADDR
+          value: "http://mender-devicemonitor:8080"
+        - name: INVENTORY_ORCHESTRATOR_ADDR
+          value: "http://mender-workflows-server:8080"
+        - name: INVENTORY_MIDDLEWARE
+          value: "prod"
+        - name: INVENTORY_NATS_URI
+          valueFrom:
+            secretKeyRef:
+              key: NATS_URI
+              name: mender-nats
+        
+    
+        envFrom:
+        - prefix: INVENTORY_
+          secretRef:
+            name: mender-mongodb
+---
+# Source: mender/templates/iot-manager/job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mender-iot-manager-migration
+  namespace: mender
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "10"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: mender
+    app.kubernetes.io/instance: mender
+    app.kubernetes.io/version: "v4.0.1"
+    app.kubernetes.io/name: mender-iot-manager
+    app.kubernetes.io/component: iot-manager
+spec:
+  backoffLimit: 5
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: mender
+        app.kubernetes.io/instance: mender
+        app.kubernetes.io/version: "v4.0.1"
+        app.kubernetes.io/name: mender-iot-manager
+        app.kubernetes.io/component: iot-manager
+    spec:
+      serviceAccountName: default
+      restartPolicy: "Never"
+      containers:
+      - name: "iot-manager-migration"
+        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/iot-manager:v4.0.1
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: 50m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 128Mi
+        args: ["migrate"]
+    
+        env:
+        - name: IOT_MANAGER_DEVICEAUTH_ADDR
+          value: "http://mender-device-auth:8080"
+        - name: IOT_MANAGER_NATS_URI
+          valueFrom:
+            secretKeyRef:
+              key: NATS_URI
+              name: mender-nats
+        
+    
+        # Set in order, last value for the key will be used in case duplications.
+        envFrom:
+        - prefix: IOT_MANAGER_
+          secretRef:
+            name: mender-mongodb
+---
+# Source: mender/templates/useradm/job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mender-useradm-migration
+  namespace: mender
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "10"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: mender
+    app.kubernetes.io/instance: mender
+    app.kubernetes.io/version: "v4.0.1"
     app.kubernetes.io/name: mender-useradm
+    app.kubernetes.io/component: useradm
+spec:
+  backoffLimit: 5
+  template:
+    
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: mender
+        app.kubernetes.io/instance: mender
+        app.kubernetes.io/version: "v4.0.1"
+        app.kubernetes.io/name: mender-useradm
+        app.kubernetes.io/component: useradm
+    spec:
+      serviceAccountName: default
+      restartPolicy: "Never"
+      containers:
+      - name: "useradm-migration"
+        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/useradm:v4.0.1
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: 150m
+            memory: 128Mi
+          requests:
+            cpu: 150m
+            memory: 64Mi
+        args: ["migrate"]
+    
+        env:
+        - name: USERADM_INVENTORY_ADDR
+          value: "http://mender-inventory:8080"
+        - name: USERADM_ORCHESTRATOR_ADDR
+          value: "http://mender-workflows-server:8080"
+        - name: USERADM_MIDDLEWARE
+          value: "prod"
+        - name: USERADM_PROXY_COUNT
+          value: "2"
+        - name: USERADM_JWT_ISSUER
+          value: "Mender Users"
+        - name: USERADM_JWT_EXP_TIMEOUT
+          value: "604800"
+        - name: USERADM_BASE_URL
+          value: "https://mender.gmaddaloni.com"
+        - name: USERADM_SERVER_PRIV_KEY_PATH
+          value: /etc/useradm/rsa/private.pem
+        - name: USERADM_TOTP_ISSUER
+          value: "Mender"
+        
+    
+        # Supported configuration settings: https://github.com/mendersoftware/useradm/blob/master/config.yaml
+        # Set in order, last value for the key will be used in case duplications.
+        envFrom:
+        - prefix: USERADM_
+          secretRef:
+            name: mender-mongodb
+---
+# Source: mender/templates/workflows/job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mender-workflows-migration
+  namespace: mender
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "10"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: mender
+    app.kubernetes.io/instance: mender
+    app.kubernetes.io/version: "v4.0.1"
+    app.kubernetes.io/name: mender-workflows
+    app.kubernetes.io/component: workflows
+spec:
+  backoffLimit: 5
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: mender
+        app.kubernetes.io/instance: mender
+        app.kubernetes.io/version: "v4.0.1"
+        app.kubernetes.io/name: mender-workflows
+        app.kubernetes.io/component: workflows
+    spec:
+      serviceAccountName: default
+      restartPolicy: "Never"
+      containers:
+      - name: "workflows-migration"
+        image: 194722422560.dkr.ecr.us-east-1.amazonaws.com/mendersoftware/workflows:v4.0.1
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
+    
+        args:
+          - migrate
+          - --skip-nats
+    
+        env:
+        # NATS uri
+        - name: AUDITLOGS_ADDR
+          value: mender-auditlogs:8080
+        - name: DEPLOYMENTS_ADDR
+          value: mender-deployments:8080
+        - name: DEVICEAUTH_ADDR
+          value: mender-device-auth:8080
+        - name: DEVICECONFIG_ADDR
+          value: mender-deviceconfig:8080
+        - name: DEVICECONNECT_ADDR
+          value: mender-deviceconnect:8080
+        - name: DEVICEMONITOR_ADDR
+          value: mender-devicemonitor:8080
+        - name: INVENTORY_ADDR
+          value: mender-inventory:8080
+        - name: IOT_MANAGER_ADDR
+          value: mender-iot-manager:8080
+        - name: TENANTADM_ADDR
+          value: mender-tenantadm:8080
+        - name: USERADM_ADDR
+          value: mender-useradm:8080
+        - name: WORKFLOWS_SERVER_ADDR
+          value: mender-workflows-server:8080
+        - name: WORKFLOWS_NATS_URI
+          valueFrom:
+            secretKeyRef:
+              key: NATS_URI
+              name: mender-nats
+        
+    
+        # Supported configuration settings: https://github.com/mendersoftware/workflows/blob/master/config.yaml
+        # Set in order, last value for the key will be used in case duplications.
+        envFrom:
+        - prefix: WORKFLOWS_
+          secretRef:
+            name: mender-mongodb

@@ -11,12 +11,9 @@ global:
   
   mongodb:
     existingSecret: "mender-mongodb"
-    URL: ""
   nats:
     existingSecret: "mender-nats"
-    URL: ""
   redis:
-    URL: ""
     existingSecret: "mender-redis"
   storage: "aws"
   s3:
@@ -60,7 +57,7 @@ default:
     # registry: docker.io
     # repository: mendersoftware
     # tag: v4.0.1
-    # pullPolicy: IfNotPresent
+    # 
 
   # HorizontalPodAutoscaler default resources
   hpa: {}
@@ -230,7 +227,7 @@ api_gateway:
   image:
     repository: traefik
     tag: 3.4.3
-    imagePullPolicy: IfNotPresent
+    imagePullPolicy: "IfNotPresent"
   imagePullSecrets: []
   replicas: 1
   resources:
@@ -338,7 +335,7 @@ deployments:
   image:
     repository: "mendersoftware"
     version: "v4.0.1"
-    pullPolicy: IfNotPresent
+    
   imagePullSecrets: []
   nodeSelector: {}
   service:
@@ -420,7 +417,7 @@ device_auth:
   image:
     repository: "mendersoftware"
     version: "v4.0.1"
-    pullPolicy: IfNotPresent
+    
   imagePullSecrets: []
   nodeSelector: {}
   service:
@@ -551,7 +548,7 @@ generate_delta_worker:
   #   registry: ""
   #   repository: ""
   #   tag: ""
-  #   pullPolicy: IfNotPresent
+  #   
   imagePullSecrets: []
   nodeSelector: {}
   priorityClassName: ""
@@ -583,7 +580,7 @@ gui:
   image:
     repository: "mendersoftware"
     tag: "v4.0.1"
-    pullPolicy: IfNotPresent
+    
   imagePullSecrets: []
   nodeSelector: {}
   service:
@@ -642,7 +639,7 @@ inventory:
   image:
     repository: "mendersoftware"
     tag: "v4.0.1"
-    pullPolicy: IfNotPresent
+    
   imagePullSecrets: []
   nodeSelector: {}
   service:
@@ -715,7 +712,7 @@ tenantadm:
   #   registry: ""
   #   repository: ""
   #   tag: ""
-  #   pullPolicy: IfNotPresent
+  #   
   imagePullSecrets: []
   nodeSelector: {}
   service:
@@ -828,7 +825,7 @@ useradm:
   image:
     repository: "mendersoftware"
     tag: "v4.0.1"
-    pullPolicy: IfNotPresent
+    
   imagePullSecrets: []
   nodeSelector: {}
   service:
@@ -914,7 +911,7 @@ workflows:
   image:
     repository: "mendersoftware"
     tag: "v4.0.1"
-    pullPolicy: IfNotPresent
+    
   imagePullSecrets: []
   nodeSelector: {}
   service:
@@ -986,6 +983,12 @@ create_artifact_worker:
   podAnnotations: {}
   automigrate: false
   replicas: 1
+  affinity: {}
+  image:
+    repository: "mendersoftware"
+    tag: "v4.0.1"
+    
+  imagePullSecrets: []
   resources:
     limits:
       cpu: 100m
@@ -993,12 +996,6 @@ create_artifact_worker:
     requests:
       cpu: 100m
       memory: 128Mi
-  affinity: {}
-  image:
-    repository: "mendersoftware"
-    tag: "v4.0.1"
-    pullPolicy: IfNotPresent
-  imagePullSecrets: []
   nodeSelector: {}
   podSecurityContext:
     enabled: false
@@ -1042,7 +1039,7 @@ auditlogs:
   #   registry: ""
   #   repository: ""
   #   tag: ""
-  #   pullPolicy: IfNotPresent
+  #   
   imagePullSecrets: []
   nodeSelector: {}
   service:
@@ -1113,7 +1110,7 @@ iot_manager:
   image:
     repository: "mendersoftware"
     tag: "v4.0.1"
-    pullPolicy: IfNotPresent
+    
   imagePullSecrets: []
   nodeSelector: {}
   service:
@@ -1224,7 +1221,7 @@ deviceconnect:
   image:
     repository: "mendersoftware"
     tag: "v4.0.1"
-    pullPolicy: IfNotPresent
+    
   imagePullSecrets: []
   nodeSelector: {}
   service:
@@ -1297,7 +1294,7 @@ deviceconfig:
   image:
     repository: "mendersoftware"
     tag: "v4.0.1"
-    pullPolicy: IfNotPresent
+    
   imagePullSecrets: []
   nodeSelector: {}
   service:
@@ -1368,7 +1365,7 @@ devicemonitor:
   # image:
   #   registry: ""
   #   repository: ""
-  #   pullPolicy: IfNotPresent
+  #   
   imagePullSecrets: []
   nodeSelector: {}
   service:
