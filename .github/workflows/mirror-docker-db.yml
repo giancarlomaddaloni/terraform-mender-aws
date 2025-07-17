@@ -48,19 +48,19 @@ jobs:
       BITNAMI_REDIS_EXPORTER: "1.74.0-debian-12-r2"
       BITNAMI_REDIS_EXPORTER_ECR_MAP: |
         {
-          "docker.io/bitnami/redis-exporter: "${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/bitnami/redis-exporter"
+          "docker.io/bitnami/redis-exporter": "${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/bitnami/redis-exporter"
         }
 
       BITNAMI_REDIS_SENTINEL: "8.0.3-debian-12-r1"
       BITNAMI_REDIS_SENTINEL_ECR_MAP: |
         {
-          "docker.io/bitnami/redis-sentinel: "${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/bitnami/redis-sentinel"
+          "docker.io/bitnami/redis-sentinel": "${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/bitnami/redis-sentinel"
         }
 
       BITNAMI_REDIS: "8.0.3-debian-12-r1"
       BITNAMI_REDIS_ECR_MAP: |
         {
-          "docker.io/bitnami/redis: "${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/bitnami/redis"
+          "docker.io/bitnami/redis": "${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/bitnami/redis"
         }
 
 
