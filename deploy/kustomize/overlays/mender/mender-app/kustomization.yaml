@@ -4,8 +4,10 @@ kind: Kustomization
 resources: 
   - ../../../base/mender-app/
   - mongodb-efs.yaml
-  - mongodb-secret.yaml
   - nats-efs.yaml
+  - redis-efs.yaml
+  - mongodb-secret.yaml
+
 
 generatorOptions:
  disableNameSuffixHash: true
@@ -18,13 +20,18 @@ helmCharts:
   releaseName: mongodb
   namespace: mender
   valuesFile: ./mongodb.yaml
-  includeCRDs: false
+  includeCRDs: true
   version: v1.18.2
 
 - name: nats
   releaseName: nats
   namespace: mender
   valuesFile: ./nats.yaml
-  includeCRDs: false
+  includeCRDs: true
 
 
+- name: redis
+  releaseName: redis
+  namespace: mender
+  valuesFile: ./redis.yaml
+  includeCRDs: true

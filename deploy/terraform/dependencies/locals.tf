@@ -30,7 +30,8 @@ locals {
     "bitnami/mongodb",
     "bitnami/kubectl",
     "bitnami/redis-exporter",
-    "bitnami/redis-sentinel"
+    "bitnami/redis-sentinel",
+    "bitnami/redis"
   ]
 
 
