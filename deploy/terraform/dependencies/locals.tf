@@ -8,16 +8,16 @@ locals {
 
   bucket_name    = "artifacts"
 
+  hosted_zone    = "gmaddaloni.com"
+  domain_name    = "mender.gmaddaloni.com"
+
   repositories = [
-    "mender-web",
     "mender-lb-eks",
     "mender-cert-manager/startupapicheck",
     "mender-cert-manager/acmesolver",
     "mender-cert-manager/cainjector",
     "mender-cert-manager/controller",
     "mender-cert-manager/webhook",
-    "mender-mongodb",
-    "mender-redis",
     "nats",
     "natsio/prometheus-nats-exporter",
     "natsio/nats-server-config-reloader",
@@ -31,7 +31,18 @@ locals {
     "bitnami/kubectl",
     "bitnami/redis-exporter",
     "bitnami/redis-sentinel",
-    "bitnami/redis"
+    "bitnami/redis",
+    "mendersoftware/workflows",
+    "mendersoftware/useradm",
+    "mendersoftware/iot-manager",
+    "mendersoftware/inventory",
+    "mendersoftware/deviceconnect",
+    "mendersoftware/deviceconfig",
+    "mendersoftware/deviceauth",
+    "mendersoftware/deployments",
+    "mendersoftware/create-artifact-worker",
+    "mendersoftware/gui",
+    "traefik"
   ]
 
 

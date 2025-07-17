@@ -8,27 +8,23 @@ global:
   auditlogs: true
   priorityClassName: ""
   
+  
   mongodb:
-    existingSecret: ""
+    existingSecret: "mender-mongodb"
     URL: ""
   nats:
-    existingSecret: ""
+    existingSecret: "mender-nats"
     URL: ""
   redis:
     URL: ""
-    existingSecret: ""
+    existingSecret: "mender-redis"
   storage: "aws"
   s3:
-    existingSecret: ""
-    AWS_URI: "https://mender.gmaddaloni.com"
-    AWS_EXTERNAL_URI: ""
-    AWS_BUCKET: mender-artifact-storage
-    AWS_REGION: us-east-1
-    AWS_ACCESS_KEY_ID: myaccesskey
-    AWS_SECRET_ACCESS_KEY: mysecretkey
-    AWS_FORCE_PATH_STYLE: "true"
-    AWS_TAG_ARTIFACT: "true"
-    AWS_SERVICE_ACCOUNT_NAME: ""
+    AWS_SERVICE_ACCOUNT_NAME: "mender-sa"
+    AWS_URI: "https://s3.us-east-1.amazonaws.com"
+    AWS_BUCKET: "mender-artifacts-nt"
+    AWS_REGION: "us-east-1"
+    AWS_FORCE_PATH_STYLE: "false"
   azure:
     AUTH_CONNECTION_STRING: ""
     AUTH_SHARED_KEY_ACCOUNT_NAME: ""
@@ -126,27 +122,39 @@ ingress:
   # See https://kubernetes.io/blog/2020/04/02/improvements-to-the-ingress-api-in-kubernetes-1.18/#specifying-the-class-of-an-ingress
   # ingressClassName: nginx
 
-  annotations: {}
-  # kubernetes.io/ingress.class: nginx
-  # kubernetes.io/tls-acme: "true"
-  # kubernetes.io/ingress.class: gce
-  # kubernetes.io/ingress.class: alb
-  # alb.ingress.kubernetes.io/healthcheck-path: /ui/
-  # cert-manager.io/issuer: "letsencrypt"
+  annotations:
+    # cert-manager.io/issuer: "letsencrypt"
+    alb.ingress.kubernetes.io/healthcheck-path: /ui/
+    alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig":{ "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/load-balancer-attributes: routing.http2.enabled=true,idle_timeout.timeout_seconds=600
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    # alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS-1-2-2017-01
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/group.name: mender
+    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:us-east-1:194722422560:certificate/9a221dd3-2a8a-46bd-ab80-ec8839b6bbf8"
+  ingressClassName: alb
   path: /
-  extraPaths: []
-  # - path: /*
-  #   backend:
-  #     serviceName: ssl-redirect
-  #     servicePort: use-annotation
+  extraPaths:
+    - path: /
+      backend:
+        serviceName: ssl-redirect
+        servicePort: use-annotation
+
+    - path: /ui/
+      backend:
+        serviceName: mender-gateway
+        servicePort: 80
+
   hosts:
     - mender.gmaddaloni.com
-  tls:
-    # this secret must exists or can be created from a working cert-manager
-    # instance
-    - secretName: mender-ingress-tls
-      hosts:
-        - mender.gmaddaloni.com
+  # tls:
+  #   # this secret must exists or can be created from a working cert-manager
+  #   # instance
+  #   - secretName: mender-ingress-tls
+  #     hosts:
+  #       - mender.gmaddaloni.com
 
 # Helm chart smoke tests
 tests:
@@ -571,11 +579,10 @@ gui:
       cpu: 5m
       memory: 16Mi
   affinity: {}
-  # image:
-  #   registry: docker.io
-  #   repository: mendersoftware/gui
-  #   tag: ""
-  #   pullPolicy: IfNotPresent
+  image:
+    repository: "mendersoftware/gui"
+    tag: "v4.0.0"
+    pullPolicy: IfNotPresent
   imagePullSecrets: []
   nodeSelector: {}
   service:
@@ -631,11 +638,10 @@ inventory:
       cpu: 300m
       memory: 128Mi
   affinity: {}
-  # image:
-  #   registry: ""
-  #   repository: ""
-  #   tag: ""
-  #   pullPolicy: IfNotPresent
+  image:
+    repository: "mendersoftware/inventory"
+    tag: "v4.0.0"
+    pullPolicy: IfNotPresent
   imagePullSecrets: []
   nodeSelector: {}
   service:
@@ -818,11 +824,10 @@ useradm:
       cpu: 150m
       memory: 64Mi
   affinity: {}
-  # image:
-  #   registry: ""
-  #   repository: ""
-  #   tag: ""
-  #   pullPolicy: IfNotPresent
+  image:
+    repository: "mendersoftware/useradm"
+    tag: "v4.0.0"
+    pullPolicy: IfNotPresent
   imagePullSecrets: []
   nodeSelector: {}
   service:
@@ -905,11 +910,10 @@ workflows:
       cpu: 10m
       memory: 64Mi
   affinity: {}
-  # image:
-  #   registry: ""
-  #   repository: ""
-  #   tag: ""
-  #   pullPolicy: IfNotPresent
+  image:
+    repository: "mendersoftware/workflows"
+    tag: "v4.0.0"
+    pullPolicy: IfNotPresent
   imagePullSecrets: []
   nodeSelector: {}
   service:
@@ -989,11 +993,10 @@ create_artifact_worker:
       cpu: 100m
       memory: 128Mi
   affinity: {}
-  # image:
-  #   registry: ""
-  #   repository: ""
-  #   tag: ""
-  #   pullPolicy: IfNotPresent
+  image:
+    repository: "mendersoftware/create-artifact-worker"
+    tag: "v4.0.0"
+    pullPolicy: IfNotPresent
   imagePullSecrets: []
   nodeSelector: {}
   podSecurityContext:
@@ -1106,11 +1109,10 @@ iot_manager:
       cpu: 50m
       memory: 128Mi
   affinity: {}
-  # image:
-  #   registry: ""
-  #   repository: ""
-  #   tag: ""
-  #   pullPolicy: IfNotPresent
+  image:
+    repository: "mendersoftware/iot-manager"
+    tag: "v4.0.0"
+    pullPolicy: IfNotPresent
   imagePullSecrets: []
   nodeSelector: {}
   service:
@@ -1218,11 +1220,10 @@ deviceconnect:
       cpu: 100m
       memory: 128Mi
   affinity: {}
-  # image:
-  #   registry: ""
-  #   repository: ""
-  #   tag: ""
-  #   pullPolicy: IfNotPresent
+  image:
+    repository: "mendersoftware/deviceconnect"
+    tag: "v4.0.0"
+    pullPolicy: IfNotPresent
   imagePullSecrets: []
   nodeSelector: {}
   service:
@@ -1292,11 +1293,10 @@ deviceconfig:
       cpu: 100m
       memory: 128Mi
   affinity: {}
-  # image:
-  #   registry: ""
-  #   repository: ""
-  #   tag: ""
-  #   pullPolicy: IfNotPresent
+  image:
+    repository: "mendersoftware/deviceconfig"
+    tag: "v4.0.0"
+    pullPolicy: IfNotPresent
   imagePullSecrets: []
   nodeSelector: {}
   service:
@@ -1352,7 +1352,7 @@ deviceconfig:
     # failureThreshold: 6
 
 devicemonitor:
-  enabled: true
+  enabled: false
   podAnnotations: {}
   automigrate: false
   replicas: 1
@@ -1470,3 +1470,9 @@ featureGates:
   # tls.crt and tls.key replace cert.crt and private.key
   # This affects api_gateway.certs when SSL is enabled
   k8sTlsSecrets: false
+
+
+
+"mendersoftware/deviceauth",
+"mendersoftware/deployments",
+"traefik"

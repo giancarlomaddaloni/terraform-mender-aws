@@ -171,7 +171,7 @@ auth:
   acl:
     ## @param auth.acl.enabled Enables the support of the Redis ACL system
     ##
-    enabled: false
+    enabled: true
     ## @param auth.acl.sentinel Enables the support of the Redis ACL system for Sentinel Nodes
     ##
     sentinel: false
@@ -185,9 +185,14 @@ auth:
     ##     commands: "+@all"
     ##     keys: "~*"
     ##     channels: "&*"
-    users: []
+    users:
+      - username: "mender"
+        enabled: "on"
+        commands: "+@all"
+        keys: "~*"
+        channels: "&*"
     ## @param auth.acl.userSecret Name of the Secret, containing user credentials for ACL users. Keys must match usernames.
-    userSecret: ""
+    userSecret: "redis-acl-users"
 ## @param commonConfiguration [string] Common configuration to be added into the ConfigMap
 ## ref: https://redis.io/topics/config
 ##

@@ -1,23 +1,96 @@
-name: Mirror DB's Images to ECR
+name: Mirror Mender Images to ECR
 
 on:
   workflow_dispatch:
 
 jobs:
   mirror:
-    name: Mirror DB's Images to ECR
+    name: Mirror Mender Images to ECR
     runs-on: ubuntu-latest
 
     env:
       AWS_REGION: ${{ secrets.AWS_REGION }}
       ACCOUNT: ${{ secrets.ACCOUNT }}
 
-      IMAGE_GROUPS: "TRAEFIK"
+      IMAGE_GROUPS: "TRAEFIK MENDER_MASTER MENDER_INVENTORY MENDER_DEVICE_AUTH MENDER_DEPLOYMENTS MENDER_CREATE_WORKER MENDER_DEVICE_CONFIG MENDER_GUI MENDER_IOT_MANAGER MENDER_WORKFLOWS MENDER_USERADM MENDER_DEVICE_CONNECT"
 
-      TRAEFIK: " 3.4.3"
+      TRAEFIK: "3.4.3"
       TRAEFIK_ECR_MAP: |
         {
           "docker.io/traefik": "${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/traefik"
+        }
+    
+      MENDER_MASTER: "mender-master"
+      MENDER_MASTER_ECR_MAP: |
+        {
+          "docker.io/mendersoftware/mender-client-docker-addons": "${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/mendersoftware/mender-client-docker-addons"
+        }
+
+      MENDER_INVENTORY: "v4.0.0"
+      MENDER_INVENTORY_ECR_MAP: |
+        {
+          "docker.io/mendersoftware/inventory": "${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/mendersoftware/inventory"
+        }
+
+      MENDER_DEVICE_AUTH: "v4.0.0"
+      MENDER_DEVICE_AUTH_ECR_MAP: |
+        {
+          "docker.io/mendersoftware/deviceauth": "${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/mendersoftware/deviceauth"
+        }
+
+      
+      MENDER_DEPLOYMENTS: "v4.0.0"
+      MENDER_DEPLOYMENTS_ECR_MAP: |
+        {
+          "docker.io/mendersoftware/deployments": "${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/mendersoftware/deployments"
+        }
+
+      
+      MENDER_CREATE_WORKER: "v4.0.0"
+      MENDER_CREATE_WORKER_ECR_MAP: |
+        {
+          "docker.io/mendersoftware/mendersoftware/create-artifact-worker": "${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/mendersoftware/mendersoftware/create-artifact-worker"
+        }
+
+      MENDER_DEVICE_CONFIG: "v4.0.0"
+      MENDER_DEVICE_CONFIG_ECR_MAP: |
+        {
+          "docker.io/mendersoftware/deviceconfig": "${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/mendersoftware/deviceconfig"
+        }
+
+      
+      MENDER_GUI: "v4.0.0"
+      MENDER_GUI_ECR_MAP: |
+        {
+          "docker.io/mendersoftware/gui": "${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/mendersoftware/gui"
+        }
+
+    
+      MENDER_IOT_MANAGER: "v4.0.0"
+      MENDER_IOT_MANAGER_ECR_MAP: |
+        {
+          "docker.io/mendersoftware/iot-manager": "${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/mendersoftware/iot-manager"
+        }
+
+          
+      MENDER_WORKFLOWS: "v4.0.0"
+      MENDER_WORKFLOWS_ECR_MAP: |
+        {
+          "docker.io/mendersoftware/workflows": "${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/mendersoftware/workflows"
+        }
+
+        
+      MENDER_USERADM: "v4.0.0"
+      MENDER_USERADM_ECR_MAP: |
+        {
+          "docker.io/mendersoftware/useradm": "${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/mendersoftware/useradm"
+        }
+
+    
+      MENDER_DEVICE_CONNECT: "v4.0.0"
+      MENDER_DEVICE_CONNECT_ECR_MAP: |
+        {
+          "docker.io/mendersoftware/deviceconnect": "${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/mendersoftware/deviceconnect"
         }
 
 
