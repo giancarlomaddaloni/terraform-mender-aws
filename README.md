@@ -108,7 +108,7 @@ Each mender microservice is deployed as a separate Kubernetes Deployment using H
 
 * Ingress managed by **NGINX Controller for mender API and ALB for mender Frontend**
 * TLS via **Cert-Manager for ALB dependencies and ACM for ALB Ingress**
-* DNS records  managed via **ROUTE53** --> gmaddaloni.com as main domain and https:://mender.gmaddaloni.com
+* DNS records  managed via **ROUTE53** --> gtest.com as main domain and https:://mender.gtest.com
 
 ### Secrets Management
 
