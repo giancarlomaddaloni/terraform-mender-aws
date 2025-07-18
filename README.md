@@ -8,6 +8,8 @@ This document outlines the architecture and configuration for deploying the [men
 
 <img width="724" height="930" alt="Screenshot 2025-07-18 at 12 28 05 PM" src="https://github.com/user-attachments/assets/7fb57218-b416-44ba-b54b-77a3631ad678" />
 
+---
+
 Docker Registry Mirroring
 
 To avoid rate limits and reduce pull latency during mender component deployment, Docker images from public registries (like Docker Hub, Bitnami, quay.io, or public.ecr.aws) are mirrored to a private ECR registry.
