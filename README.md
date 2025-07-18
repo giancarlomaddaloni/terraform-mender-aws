@@ -272,7 +272,7 @@ db.getSiblingDB("gui").grantRolesToUser("mender", [
 
 ```bash
 USERADM_POD=$(kubectl get pod -l 'app.kubernetes.io/component=useradm' -o name | head -1)
-kubectl exec $USERADM_POD -- useradm create-user --username "g*****ni@gmail.com" --password "xxxxx"
+kubectl exec $USERADM_POD -- useradm create-user --username "gtest@gmail.com" --password "xxxxx"
 ```
 
 ---
