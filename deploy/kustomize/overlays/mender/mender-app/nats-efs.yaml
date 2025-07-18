@@ -14,7 +14,7 @@ spec:
   volumeMode: Filesystem
   csi:
     driver: efs.csi.aws.com
-    volumeHandle: fs-0314c6b7168dd797e::fsap-05a7d8350f5cfc569
+    volumeHandle: fs-xxxx::fsap-xxxx
     volumeAttributes:
       encryptInTransit: "false"
 

@@ -8,8 +8,8 @@ locals {
 
   bucket_name    = "artifacts"
 
-  hosted_zone    = "gmaddaloni.com"
-  domain_name    = "mender.gmaddaloni.com"
+  hosted_zone    = "gtest.com.com"
+  domain_name    = "mender.gtest.com.com"
 
   repositories = [
     "mender-lb-eks",

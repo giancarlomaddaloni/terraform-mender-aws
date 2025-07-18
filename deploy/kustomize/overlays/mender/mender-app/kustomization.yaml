@@ -3,12 +3,14 @@ kind: Kustomization
 
 resources: 
   - ../../../base/mender-app/
-  - mongodb-efs.yaml
-  - nats-efs.yaml
-  - redis-efs.yaml
-  - mongodb-secret.yaml
-  - redis-secret.yaml
-  - nats-secret.yaml
+  # Disabling since passwords and critical data got masked. 
+  # If you need to update secrets and efs, add the right account ID access_points id's,  domains and emails. 
+  # - mongodb-efs.yaml
+  # - nats-efs.yaml
+  # - redis-efs.yaml
+  # - mongodb-secret.yaml
+  # - redis-secret.yaml
+  # - nats-secret.yaml
 
 
 

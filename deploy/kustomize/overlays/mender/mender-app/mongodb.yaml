@@ -14,7 +14,7 @@
 ## @param global.namespaceOverride Override the namespace for resource deployed by the chart, but can itself be overridden by the local namespaceOverride
 ##
 global:
-  imageRegistry: "194722422560.dkr.ecr.us-east-1.amazonaws.com"
+  imageRegistry: "1xxxxxxxxxxxx0.dkr.ecr.us-east-1.amazonaws.com"
   ## E.g.
   ## imagePullSecrets:
   ##   - myRegistryKeySecretName

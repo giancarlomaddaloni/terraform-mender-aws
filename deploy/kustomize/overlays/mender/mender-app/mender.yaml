@@ -1,7 +1,7 @@
 fullnameOverride: ""
 
 global:
-  imageRegistry: "194722422560.dkr.ecr.us-east-1.amazonaws.com"
+  imageRegistry: "1xxxxxxxxxxxx0.dkr.ecr.us-east-1.amazonaws.com"
 
   enterprise: false
   hosted: false
@@ -53,7 +53,7 @@ default:
   # If false: docker.io/mendersoftware
   # The tag defaults to the chart version.
   image:
-    registry: "194722422560.dkr.ecr.us-east-1.amazonaws.com"
+    registry: "1xxxxxxxxxxxx0.dkr.ecr.us-east-1.amazonaws.com"
     # registry: docker.io
     # repository: mendersoftware
     # tag: v4.0.1
@@ -132,7 +132,7 @@ ingress:
     # alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS-1-2-2017-01
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/group.name: mender
-    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:us-east-1:194722422560:certificate/9a221dd3-2a8a-46bd-ab80-ec8839b6bbf8"
+    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:us-east-1:1xxxxxxxxxxxx0:certificate/9a221dd3-2a8a-46bd-ab80-ec8839b6bbf8"
   ingressClassName: alb
   path: /
   extraPaths:

@@ -23,7 +23,7 @@ module "mender_eks" {
   access_entries = {
     federated_mender_deploy = {
       kubernetes_groups = [] 
-      principal_arn     = "arn:aws:sts::194722422560:federated-user/mender-deploy"
+      principal_arn     = "arn:aws:sts::1xxxxxxxxxxxx0:federated-user/mender-deploy"
       policy_associations = {
         namespace = {
           policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminPolicy"
@@ -42,7 +42,7 @@ module "mender_eks" {
     },
     mender_deploy = {
       kubernetes_groups = [] 
-      principal_arn     = "arn:aws:iam::194722422560:user/mender-deploy"
+      principal_arn     = "arn:aws:iam::1xxxxxxxxxxxx0:user/mender-deploy"
       policy_associations = {
         namespace = {
           policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminPolicy"
@@ -61,7 +61,7 @@ module "mender_eks" {
     },
     federated_northerntech_team = {
       kubernetes_groups = []
-      principal_arn     = "arn:aws:sts::194722422560:federated-user/northerntech-team"
+      principal_arn     = "arn:aws:sts::1xxxxxxxxxxxx0:federated-user/northerntech-team"
       policy_associations = {
         namespace = {
           policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminPolicy"
@@ -80,7 +80,7 @@ module "mender_eks" {
     },
     northerntech_team = {
       kubernetes_groups = []
-      principal_arn     = "arn:aws:iam::194722422560:user/northerntech-team"
+      principal_arn     = "arn:aws:iam::1xxxxxxxxxxxx0:user/northerntech-team"
       policy_associations = {
         namespace = {
           policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminPolicy"

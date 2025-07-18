@@ -14,7 +14,7 @@
 ## @param global.redis.password Global Redis(R) password (overrides `auth.password`)
 ##
 global:
-  imageRegistry: "194722422560.dkr.ecr.us-east-1.amazonaws.com"
+  imageRegistry: "1xxxxxxxxxxxx0.dkr.ecr.us-east-1.amazonaws.com"
   ## E.g.
   ## imagePullSecrets:
   ##   - myRegistryKeySecretName

@@ -4,7 +4,10 @@ kind: Kustomization
 
 resources: 
   - ../../../base/controllers/
-  - issuer-letsencrypt
+  # Disabling since passwords and critical data got masked. 
+  # If you need to update secrets and efs, add the right account ID access_points id's,  domains and emails. 
+  # - issuer-letsencrypt.yaml
+
 
 
 generatorOptions:

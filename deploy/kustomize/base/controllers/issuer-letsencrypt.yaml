@@ -6,7 +6,7 @@ metadata:
 spec:
   acme:
     server: https://acme-v02.api.letsencrypt.org/directory
-    email: giancarlomadddaloni@gmail.com
+    email: gtest@gmail.com
     privateKeySecretRef:
       name: letsencrypt
     solvers:
