@@ -47,3 +47,49 @@ db.createUser({
     { role: "userAdmin", db: "deviceauth" }
   ]
 })
+db.grantRolesToUser("mender", [
+  { role: "readWrite", db: "deviceauth" },
+  { role: "dbAdmin", db: "deviceauth" },
+  { role: "userAdmin", db: "deviceauth" }
+])
+
+
+db.getSiblingDB("workflows").grantRolesToUser("mender", [
+  { role: "readWrite", db: "workflows" },
+  { role: "dbAdmin", db: "workflows" },
+  { role: "userAdmin", db: "workflows" }
+]);
+
+db.getSiblingDB("deviceauth").grantRolesToUser("mender", [
+  { role: "readWrite", db: "deviceauth" },
+  { role: "dbAdmin", db: "deviceauth" },
+  { role: "userAdmin", db: "deviceauth" }
+]);
+
+db.getSiblingDB("useradm").grantRolesToUser("mender", [
+  { role: "readWrite", db: "useradm" },
+  { role: "dbAdmin", db: "useradm" },
+  { role: "userAdmin", db: "useradm" }
+]);
+
+db.getSiblingDB("inventory").grantRolesToUser("mender", [
+  { role: "readWrite", db: "inventory" },
+  { role: "dbAdmin", db: "inventory" },
+  { role: "userAdmin", db: "inventory" }
+]);
+
+db.getSiblingDB("deployments").grantRolesToUser("mender", [
+  { role: "readWrite", db: "deployments" },
+  { role: "dbAdmin", db: "deployments" },
+  { role: "userAdmin", db: "deployments" }
+]);
+
+db.getSiblingDB("gui").grantRolesToUser("mender", [
+  { role: "readWrite", db: "gui" },
+  { role: "dbAdmin", db: "gui" },
+  { role: "userAdmin", db: "gui" }
+]);
+
+
+USERADM_POD=$(kubectl get pod -l 'app.kubernetes.io/component=useradm' -o name | head -1)
+kubectl exec $USERADM_POD -- useradm create-user --username "giancarlomaddaloni@gmail.com" --password "mendernt2025"

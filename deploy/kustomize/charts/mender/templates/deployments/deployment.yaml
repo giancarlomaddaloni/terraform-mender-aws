@@ -23,12 +23,12 @@ spec:
   progressDeadlineSeconds: 600
 
 
-  # Rollout upgrade
-  {{- $update := coalesce .Values.deployments.updateStrategy .Values.default.updateStrategy -}}
-  {{- if $update }}
+
   strategy:
-  {{ toYaml $update | indent 2 }}
-  {{- end }}
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
 
   {{- $minReadySeconds := coalesce .Values.deployments.minReadySeconds .Values.default.minReadySeconds }}
   {{- if $minReadySeconds }}
