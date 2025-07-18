@@ -1128,7 +1128,7 @@ replica:
     minReplicas: 1
     ## @param replica.autoscaling.maxReplicas Maximum replicas for the pod autoscaling
     ##
-    maxReplicas: 11
+    maxReplicas: 2
     ## @param replica.autoscaling.targetCPU Percentage of CPU to consider when autoscaling
     ##
     targetCPU: ""

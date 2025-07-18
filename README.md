@@ -14,3 +14,36 @@ Hang tight while we grab the latest from your chart repositories...
 Update Complete. ⎈Happy Helming!⎈
 Saving 1 charts
 Deleting outdated charts
+
+use workflows
+db.createUser({
+  user: "mender",
+  pwd: "mendernt2025",
+  roles: [
+    { role: "readWrite", db: "workflows" },
+    { role: "dbAdmin", db: "workflows" },
+    { role: "userAdmin", db: "workflows" }
+  ]
+})
+
+use mender
+db.createUser({
+  user: "mender",
+  pwd: "mendernt2025",
+  roles: [
+    { role: "readWrite", db: "mender" },
+    { role: "dbAdmin", db: "mender" },
+    { role: "userAdmin", db: "mender" }
+  ]
+})
+
+use deviceauth
+db.createUser({
+  user: "mender",
+  pwd: "mendernt2025",
+  roles: [
+    { role: "readWrite", db: "deviceauth" },
+    { role: "dbAdmin", db: "deviceauth" },
+    { role: "userAdmin", db: "deviceauth" }
+  ]
+})

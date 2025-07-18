@@ -174,7 +174,7 @@ auth:
   enabled: true
   ## @param auth.rootUser MongoDB(&reg;) root user
   ##
-  rootUser: root
+  rootUser: "root"
   ## @param auth.rootPassword MongoDB(&reg;) root password
   ## ref: https://github.com/bitnami/containers/tree/main/bitnami/mongodb#setting-the-root-user-and-password-on-first-run
   ##
@@ -185,16 +185,14 @@ auth:
   ## @param auth.passwords List of passwords for the custom users set at `auth.usernames`
   ## @param auth.databases List of custom databases to be created during the initialization
   ##
-  usernames: []
-  passwords: []
-  databases: []
+  usernames: ["mender"]
+  passwords: ["mendernt2025"]
+  databases: ["mender"]
   ## @param auth.username DEPRECATED: use `auth.usernames` instead
   ## @param auth.password DEPRECATED: use `auth.passwords` instead
   ## @param auth.database DEPRECATED: use `auth.databases` instead
   ##
-  username: "mender"
-  password: "mendernt2025"
-  database: "mender"
+
   ## @param auth.replicaSetKey Key used for authentication in the replicaset (only when `architecture=replicaset`)
   ##
   replicaSetKey: ""

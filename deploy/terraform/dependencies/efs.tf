@@ -59,7 +59,7 @@ module "mender_efs" {
     },
     mender_mongo = {
       root_directory = {
-        path = "/bitnami/mongodb"
+        path = "/bitnami/mongodb/data/db"
         creation_info = {
           owner_gid   = 1001
           owner_uid   = 1001
