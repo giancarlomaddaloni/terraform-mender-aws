@@ -1,4 +1,4 @@
-# m**er Deployment on AWS EKS
+# Mender Deployment on AWS EKS
 
 ## Overview
 
