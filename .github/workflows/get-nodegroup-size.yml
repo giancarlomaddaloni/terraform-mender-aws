@@ -1,0 +1,39 @@
+name: Get Node Group Size
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check-nodegroup:
+    name: Get Number of Running Nodes
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Get Node Group Size
+        id: get_nodegroup
+        run: |
+          echo "📡 Getting NodeGroup size for: ${{ secrets.EKS_NODEGROUP_NAME }}"
+          aws eks describe-nodegroup \
+            --cluster-name ${{ secrets.EKS_CLUSTER_NAME }} \
+            --nodegroup-name ${{ secrets.EKS_NODEGROUP_NAME }} \
+            --region ${{ secrets.AWS_REGION }} \
+            --query "nodegroup.scalingConfig.desiredSize" \
+            --output text > node_count.txt
+
+          NODE_COUNT=$(cat node_count.txt)
+          echo "🟢 Node Group Desired Size: $NODE_COUNT"
+          echo "NODE_COUNT=$NODE_COUNT" >> $GITHUB_OUTPUT
+
+      - name: Print result
+        run: |
+          echo "✅ Node Group currently has ${{ steps.get_nodegroup.outputs.NODE_COUNT }} nodes running (desired size)."

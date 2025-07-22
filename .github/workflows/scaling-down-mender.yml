@@ -2,6 +2,23 @@ name: Scale Down Mender Namespace and Node Group
 
 on:
   workflow_dispatch:
+    inputs:
+    namespace:
+      description: 'Namespace to scale down'
+      required: false
+      default: 'mender'
+    nodegroup_min:
+      description: 'Minimum node group size'
+      required: false
+      default: '1'
+    nodegroup_max:
+      description: 'Maximum node group size'
+      required: false
+      default: '1'
+    nodegroup_desired:
+      description: 'Desired node group size'
+      required: false
+      default: '1'
 
 jobs:
   scale-down:
