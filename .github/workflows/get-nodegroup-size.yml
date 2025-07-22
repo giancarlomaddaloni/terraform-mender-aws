@@ -31,5 +31,8 @@ jobs:
             --query "nodegroup.scalingConfig.desiredSize" \
             --output text)
 
+            
+
           echo "::notice::Node Group Desired Size: $COUNT"
           echo "NODE_COUNT=$COUNT" >> $GITHUB_OUTPUT
+          echo "NODES=$COUNT"
