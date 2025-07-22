@@ -22,7 +22,6 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Get Node Group Size
-        id: extract
         run: |
           COUNT=$(aws eks describe-nodegroup \
             --cluster-name ${{ secrets.EKS_CLUSTER_NAME }} \
@@ -31,7 +30,4 @@ jobs:
             --query "nodegroup.scalingConfig.desiredSize" \
             --output text)
 
-            
-
-          echo "::notice::NODES=$COUNT"
-          echo "NODES=$COUNT"
+          echo "::notice title=NODES::$COUNT"
