@@ -7,6 +7,8 @@ jobs:
   check-nodegroup:
     name: Get Number of Running Nodes
     runs-on: ubuntu-latest
+    outputs:
+      node_count: ${{ steps.extract.outputs.NODE_COUNT }}
 
     steps:
       - name: Checkout
@@ -20,20 +22,13 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Get Node Group Size
-        id: get_nodegroup
+        id: extract
         run: |
-          echo "📡 Getting NodeGroup size for: ${{ secrets.EKS_NODEGROUP_NAME }}"
-          aws eks describe-nodegroup \
+          COUNT=$(aws eks describe-nodegroup \
             --cluster-name ${{ secrets.EKS_CLUSTER_NAME }} \
             --nodegroup-name ${{ secrets.EKS_NODEGROUP_NAME }} \
             --region ${{ secrets.AWS_REGION }} \
             --query "nodegroup.scalingConfig.desiredSize" \
-            --output text > node_count.txt
+            --output text)
 
-          NODE_COUNT=$(cat node_count.txt)
-          echo "🟢 Node Group Desired Size: $NODE_COUNT"
-          echo "NODE_COUNT=$NODE_COUNT" >> $GITHUB_OUTPUT
-
-      - name: Print result
-        run: |
-          echo "✅ Node Group currently has ${{ steps.get_nodegroup.outputs.NODE_COUNT }} nodes running (desired size)."
+          echo "NODE_COUNT=$COUNT" >> $GITHUB_OUTPUT
