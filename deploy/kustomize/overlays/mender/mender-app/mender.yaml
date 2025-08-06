@@ -36,7 +36,7 @@ global:
     SMTP_USERNAME: "null"
     SMTP_PASSWORD: "null"
     SMTP_SSL: "false"
-  url: "https://mender.gmaddaloni.com"
+  url: "https://mender.gtest.com"
   # guardrails for subcharts
   namespaceOverride: "mender"
 
@@ -147,13 +147,13 @@ ingress:
         servicePort: http
 
   hosts:
-    - mender.gmaddaloni.com
+    - mender.gtest.com
   # tls:
   #   # this secret must exists or can be created from a working cert-manager
   #   # instance
   #   - secretName: mender-ingress-tls
   #     hosts:
-  #       - mender.gmaddaloni.com
+  #       - mender.gtest.com
 
 # Helm chart smoke tests
 tests:
